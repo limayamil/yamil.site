@@ -244,6 +244,17 @@ a {
   }
 }
 
+/* The pinned column only works while its content fits a viewport-tall box.
+   Under that, `height: 100svh` would push contact + clock below the fold with
+   no way to scroll to them — sticky never releases — so let the column scroll
+   with the page instead. */
+@media (min-width: 62rem) and (max-height: 58rem) {
+  .intro {
+    position: static;
+    height: auto;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Availability dot
 --------------------------------------------------------------------------- */

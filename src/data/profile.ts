@@ -34,9 +34,11 @@ export const profile = {
     { label: 'Read.cv', href: 'https://read.cv/placeholder', external: true },
   ],
 
-  location: 'Buenos Aires, Argentina',
+  location: 'Córdoba, Argentina',
   // IANA zone used for the live local clock in the footer.
-  timezone: 'America/Argentina/Buenos_Aires',
+  timezone: 'America/Argentina/Cordoba',
+  // Coordinates used to fetch the footer's live weather reading (Open-Meteo, no key required).
+  weather: { lat: -31.4201, lon: -64.1888 },
 } as const;
 
 export const meta = {

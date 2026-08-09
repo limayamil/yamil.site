@@ -1,9 +1,10 @@
 /**
- * The site's entire runtime. Three small jobs, no framework:
+ * The site's entire runtime. Four small jobs, no framework:
  *
  *   1. reveal elements once as they enter the viewport
  *   2. play a card's loop on hover (pointer) or when centred (touch)
  *   3. keep the footer clock ticking
+ *   4. fetch the footer's live weather reading once, on load
  *
  * Nothing here reads layout during scroll, and every animated property is
  * transform/opacity, so the compositor handles the frames on its own.
@@ -155,8 +156,69 @@ function initClock(): void {
   alignToMinute();
 }
 
+/* -- 4. Weather ------------------------------------------------------------ */
+
+// WMO weather codes (Open-Meteo) collapsed to one icon each. Not exhaustive by
+// design — the footer wants a glance, not a forecast.
+const WEATHER_ICONS: Record<number, string> = {
+  0: '☀️',
+  1: '🌤️',
+  2: '⛅',
+  3: '☁️',
+  45: '🌫️',
+  48: '🌫️',
+  51: '🌦️',
+  53: '🌦️',
+  55: '🌦️',
+  56: '🌦️',
+  57: '🌦️',
+  61: '🌧️',
+  63: '🌧️',
+  65: '🌧️',
+  66: '🌧️',
+  67: '🌧️',
+  71: '🌨️',
+  73: '🌨️',
+  75: '🌨️',
+  77: '🌨️',
+  80: '🌦️',
+  81: '🌧️',
+  82: '🌧️',
+  85: '🌨️',
+  86: '🌨️',
+  95: '⛈️',
+  96: '⛈️',
+  99: '⛈️',
+};
+
+async function initWeather(): Promise<void> {
+  const node = document.querySelector<HTMLElement>('[data-weather]');
+  const lat = node?.dataset.weatherLat;
+  const lon = node?.dataset.weatherLon;
+  const icon = node?.querySelector<HTMLElement>('[data-weather-icon]');
+  const temp = node?.querySelector<HTMLElement>('[data-weather-temp]');
+  if (!node || !lat || !lon || !icon || !temp) return;
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return;
+    const data = await response.json();
+    const current = data?.current;
+    if (typeof current?.temperature_2m !== 'number') return;
+
+    icon.textContent = WEATHER_ICONS[current.weather_code] ?? '🌡️';
+    temp.textContent = `${Math.round(current.temperature_2m)}°C`;
+    node.style.display = 'flex';
+  } catch {
+    // Offline, blocked, or the API is down — the widget just stays hidden.
+  }
+}
+
 /* -- boot ----------------------------------------------------------------- */
 
 initReveals();
 initVideos();
 initClock();
+void initWeather();
