@@ -1,0 +1,61 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  project: CollectionEntry<'projects'>['data'];
+  index: number;
+}
+
+const { project, index } = Astro.props;
+const { title, client, year, roles, poster, video, href } = project;
+
+const isExternal = Boolean(href && /^https?:\/\//.test(href));
+const label = `${title}${client ? ` — ${client}` : ''}, ${year}`;
+// Above-the-fold cards load eagerly; the rest wait for the scroll.
+const eager = index < 2;
+---
+
+<article data-reveal>
+  <a
+    class="card group"
+    href={href ?? '#'}
+    aria-label={label}
+    {...isExternal ? { target: '_blank', rel: 'noreferrer noopener' } : {}}
+  >
+    <div class="card-media" {...video ? {} : { 'data-placeholder': '' }}>
+      <img
+        src={poster}
+        alt=""
+        width="1600"
+        height="1000"
+        loading={eager ? 'eager' : 'lazy'}
+        decoding={eager ? 'sync' : 'async'}
+        fetchpriority={eager ? 'high' : 'auto'}
+      />
+      {
+        video && (
+          <video
+            src={video}
+            poster={poster}
+            muted
+            loop
+            playsinline
+            preload="none"
+            aria-hidden="true"
+            tabindex="-1"
+          />
+        )
+      }
+    </div>
+
+    <div class="card-meta">
+      <div>
+        <h3 class="card-title">{title}</h3>
+        <ul class="card-roles">
+          {roles.map((role) => <li>{role}</li>)}
+        </ul>
+      </div>
+      <span class="card-year">{year}</span>
+    </div>
+  </a>
+</article>

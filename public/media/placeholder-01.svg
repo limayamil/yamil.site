@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" role="img" aria-label="Placeholder artwork 1">
+  <defs>
+    <linearGradient id="b1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#EFE7DC"/>
+      <stop offset="1" stop-color="#CFB392"/>
+    </linearGradient>
+    <radialGradient id="g1a" cx="0.22" cy="0.18" r="0.72">
+      <stop offset="0" stop-color="#EFE7DC" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#EFE7DC" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g1b" cx="0.84" cy="0.82" r="0.68">
+      <stop offset="0" stop-color="#8A6A4A" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#8A6A4A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="s1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8A6A4A" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#8A6A4A" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#8A6A4A" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#b1)"/>
+  <rect width="1600" height="1000" fill="url(#g1a)"/>
+  <rect width="1600" height="1000" fill="url(#g1b)"/>
+  <g fill="none" stroke="#8A6A4A" stroke-opacity="0.16">
+    <circle cx="800" cy="500" r="236"/>
+    <circle cx="800" cy="500" r="356"/>
+  </g>
+  <rect x="0" y="499" width="1600" height="2" fill="url(#s1)"/>
+  <text x="60" y="944" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="500" letter-spacing="6" fill="#8A6A4A" fill-opacity="0.55">PLACEHOLDER 01</text>
+</svg>

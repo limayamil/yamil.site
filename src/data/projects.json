@@ -1,0 +1,62 @@
+[
+  {
+    "id": "atlas-design-system",
+    "title": "Atlas Design System",
+    "client": "Placeholder Client",
+    "year": 2025,
+    "roles": ["Design Engineering", "Systems"],
+    "poster": "/media/placeholder-01.svg",
+    "href": "#",
+    "order": 1
+  },
+  {
+    "id": "northwind-titles",
+    "title": "Northwind — Title Sequence",
+    "client": "Placeholder Studio",
+    "year": 2025,
+    "roles": ["Motion Graphics", "Art Direction"],
+    "poster": "/media/placeholder-02.svg",
+    "href": "#",
+    "order": 2
+  },
+  {
+    "id": "lifecycle-engine",
+    "title": "Lifecycle Engine",
+    "client": "Placeholder SaaS",
+    "year": 2024,
+    "roles": ["Marketing Operations", "Automation"],
+    "poster": "/media/placeholder-03.svg",
+    "href": "#",
+    "order": 3
+  },
+  {
+    "id": "meridian-product-site",
+    "title": "Meridian Product Site",
+    "client": "Placeholder Co.",
+    "year": 2024,
+    "roles": ["Design Engineering", "Web"],
+    "poster": "/media/placeholder-04.svg",
+    "href": "#",
+    "order": 4
+  },
+  {
+    "id": "signal-brand-system",
+    "title": "Signal — Brand in Motion",
+    "client": "Placeholder Brand",
+    "year": 2023,
+    "roles": ["Motion Graphics", "Identity"],
+    "poster": "/media/placeholder-05.svg",
+    "href": "#",
+    "order": 5
+  },
+  {
+    "id": "revenue-attribution",
+    "title": "Revenue Attribution Model",
+    "client": "Placeholder Group",
+    "year": 2023,
+    "roles": ["Marketing Operations", "Analytics"],
+    "poster": "/media/placeholder-06.svg",
+    "href": "#",
+    "order": 6
+  }
+]

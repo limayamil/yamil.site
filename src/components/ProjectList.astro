@@ -1,0 +1,17 @@
+---
+import { getCollection } from 'astro:content';
+import ProjectCard from './ProjectCard.astro';
+
+const projects = (await getCollection('projects'))
+  .filter((entry) => entry.data.featured)
+  .sort((a, b) => a.data.order - b.data.order);
+---
+
+<main id="work" class="projects">
+  <h2 class="label sr-only">Selected work</h2>
+  {
+    projects.map((entry, index) => (
+      <ProjectCard project={entry.data} index={index} />
+    ))
+  }
+</main>

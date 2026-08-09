@@ -1,0 +1,81 @@
+---
+import { profile } from '../data/profile';
+import Links from './Links.astro';
+
+// Rendered at build time so the slot is never empty; motion.ts replaces it
+// with the visitor-accurate value on load and keeps it ticking.
+const initialTime = new Intl.DateTimeFormat('en-US', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: profile.timezone,
+}).format(new Date());
+---
+
+<header class="intro">
+  <div class="flex flex-col gap-7">
+    {/* Decorative: the name it sits above already announces who this is. */}
+    <img
+      class="enter size-[3.75rem] lg:size-[4.5rem]"
+      src="/logo.png"
+      alt=""
+      width="384"
+      height="384"
+      loading="eager"
+      decoding="sync"
+      fetchpriority="high"
+      style="--i:0"
+    />
+
+    <div class="flex flex-col gap-3">
+      <h1 class="display enter text-[clamp(2.6rem,4.4vw,3.9rem)]" style="--i:1">
+        {profile.name}
+      </h1>
+      <p class="enter text-[0.9375rem] text-muted" style="--i:2">
+        {profile.role}
+      </p>
+    </div>
+
+    <div class="enter flex max-w-[38ch] flex-col gap-3.5 text-muted" style="--i:3">
+      {profile.bio.map((paragraph) => <p class="prose-tight">{paragraph}</p>)}
+    </div>
+
+    {
+      profile.available.is && (
+        <p class="enter flex items-center gap-2.5 text-[0.8125rem]" style="--i:4">
+          <span class="dot" />
+          {profile.available.label}
+        </p>
+      )
+    }
+  </div>
+
+  <div class="enter mt-12 flex flex-col gap-8 lg:mt-0" style="--i:5">
+    <section class="flex flex-col gap-3">
+      <h2 class="label">Capabilities</h2>
+      <ul class="flex flex-col gap-1.5">
+        {
+          profile.capabilities.map((capability) => (
+            <li class="flex flex-col gap-0.5 border-b border-line pb-2 last:border-0">
+              <span class="text-[0.875rem]">{capability.title}</span>
+              <span class="text-[0.8125rem] text-faint">{capability.detail}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <div class="flex flex-col gap-3">
+      <h2 class="label">Contact</h2>
+      <Links />
+    </div>
+
+    <p class="flex items-center gap-2 text-[0.8125rem] text-faint">
+      <span>{profile.location}</span>
+      <span aria-hidden="true">—</span>
+      <time data-clock data-timezone={profile.timezone} class="tabular-nums">
+        {initialTime}
+      </time>
+    </p>
+  </div>
+</header>
