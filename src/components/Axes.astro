@@ -2,6 +2,7 @@
 import { profile } from '../data/profile';
 import { toolIcons } from '../lib/tool-icons';
 import Bilingual from './Bilingual.astro';
+import Doodle from './Doodle.astro';
 import Icon from './Icon.astro';
 import ToolIcon from './ToolIcon.astro';
 
@@ -56,6 +57,10 @@ const toolNames = (tools: string[]) => tools.map((tool) => toolIcons[tool]?.titl
                 <Bilingual es={capability.line.es} en={capability.line.en} />
                 {` ${toolNames(capability.tools)}.`}
               </span>
+              {/* Drawn over the row's hairline border while this axis is the
+                  active one. Third signal alongside the colour shift and the
+                  chevron — colour alone was carrying the state before. */}
+              <Doodle name="underline" class="axis-rule" />
             </button>
           </li>
         ))

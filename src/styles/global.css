@@ -29,6 +29,22 @@
     U+2215, U+FEFF, U+FFFD;
 }
 
+/* The annotation face. Deliberately *not* preloaded, unlike the two above:
+   it only ever sets one- to three-word margin notes, so it has no business
+   competing for bandwidth with the type the page is actually built from.
+   `swap` means those notes render in the fallback first and re-set later —
+   which is fine for a note, and would not be for a heading. */
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/caveat-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
 /* ---------------------------------------------------------------------------
    Design tokens
 --------------------------------------------------------------------------- */
@@ -41,9 +57,24 @@
   --color-faint: #9a9a94;
   --color-line: rgb(17 17 16 / 0.1);
 
+  /* The one non-neutral in the palette. Measured against --color-bg (#fafaf8):
+       --color-primary       3.60:1 — clears the 3:1 AA floor for non-text
+                                      graphics and for large text. Marks, rules
+                                      and display accents only.
+       --color-primary-ink   5.53:1 — clears 4.5:1. Any primary-coloured text
+                                      below ~24px must use this one.
+       --color-primary-wash          Backs a highlighted term; never a border,
+                                      it has no contrast to spare.
+     Picking the wrong one of the first two is the easiest accessibility
+     mistake to make here, which is why the numbers live in the file. */
+  --color-primary: #e35342;
+  --color-primary-ink: #b8392a;
+  --color-primary-wash: rgb(227 83 66 / 0.16);
+
   --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
   --font-display: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-hand: 'Caveat', 'Segoe Script', 'Bradley Hand', cursive;
 
   /* Apple-ish deceleration: fast out of the gate, long settle. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -140,6 +171,19 @@ a {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-faint);
+}
+
+/* A margin note, in the same hand as the drawn marks.
+   Caveat runs small for its point size, hence the bump. `--color-primary-ink`
+   and not `--color-primary`: this is text under 24px, so it needs the 4.5:1
+   variant. The tilt is what stops it reading as another UI label. */
+.hand {
+  font-family: var(--font-hand);
+  font-size: 1.0625rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+  color: var(--color-primary-ink);
+  transform: rotate(-2.5deg);
 }
 
 .skip-link {
@@ -250,6 +294,141 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 /* ---------------------------------------------------------------------------
+   Doodles — hand-drawn marks laid over the things they annotate.
+
+   Every mark is absolutely positioned and pointer-transparent, so annotating
+   an element never moves the layout around it and never intercepts a click.
+   That is what keeps `.intro` inside its `100svh` budget: a doodle costs zero
+   flow height no matter how large it is drawn.
+
+   The marks draw themselves. `pathLength="1"` on every path (see
+   `Doodle.astro`) normalises any shape to a length of 1 regardless of its real
+   geometry, so a single dash rule animates a ring, a rule and an arrow alike —
+   no measuring the DOM, which is the job a runtime library would have done.
+   The highlighter is the exception: its "stroke" is a 15px felt tip, and a
+   dash reveal on something that fat reads as a dashed line rather than a pen,
+   so it wipes in from the left instead. Same gesture as `.link::after`.
+
+   None of this needs JS. Each mark inherits the reveal it belongs to — the
+   `--i` stagger of an `.enter` ancestor, or the `.is-active` an axis button
+   already gets — which is why `motion.ts` is untouched by the whole system.
+--------------------------------------------------------------------------- */
+
+.doodle {
+  position: absolute;
+  z-index: 0;
+  color: var(--color-primary);
+  pointer-events: none;
+  /* Rough draws past its own viewBox by a pixel or two at high roughness. */
+  overflow: visible;
+  /* The base reset caps every `svg` at `max-width: 100%`, which is right for
+     content and wrong for a mark: a ring has to be drawn *wider* than the word
+     it goes around, and the cap silently clamps it back to the word's exact
+     box — a border, not a ring. Height was never capped, so the failure looks
+     like a squashed oval rather than a missing rule. */
+  max-width: none;
+}
+
+/* Every placement below sizes with `width`/`height`, never with opposing
+   insets. An `<svg>` is a replaced element with an intrinsic ratio, so
+   `left: 0; right: 0; width: auto` is over-constrained: the browser drops
+   `right` and sizes the mark from its own viewBox instead of from the thing it
+   is annotating. A rule meant to span a 722px row came out 160px wide. */
+
+/* Undrawn is the resting state — every reveal below is what undoes it. */
+.doodle path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.doodle-wipe {
+  clip-path: inset(0 100% 0 0);
+}
+
+.doodle-wipe path {
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+
+@keyframes doodle-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes doodle-wipe {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Marks that come in with the page. `--i` inherits from the `.enter` ancestor,
+   so a mark lands on the same beat as its own line of text — plus 700ms, which
+   is roughly that line finishing. Annotating something before it exists reads
+   backwards. */
+.doodle-enter:not(.doodle-wipe) path {
+  animation: doodle-draw 0.85s var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 65ms + 700ms);
+}
+
+.doodle-enter.doodle-wipe {
+  animation: doodle-wipe 0.5s var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 65ms + 700ms);
+}
+
+/* Marks tied to a scroll reveal. */
+[data-reveal].is-visible .doodle:not(.doodle-wipe) path {
+  animation: doodle-draw 0.85s var(--ease-out) forwards;
+}
+
+[data-reveal].is-visible .doodle-wipe {
+  animation: doodle-wipe 0.5s var(--ease-out) forwards;
+}
+
+/* A ringed word. `inline-block` so the ring has a box to size against, and
+   negative insets so it clears the letterforms — a ring drawn on the exact
+   text box looks like a border, not like a pen. */
+.mark {
+  position: relative;
+  display: inline-block;
+}
+
+.mark .doodle {
+  top: -0.2em;
+  left: -0.34em;
+  width: calc(100% + 0.68em);
+  height: calc(100% + 0.34em);
+  transform: rotate(-1.2deg);
+}
+
+/* An aside pointing at the thing below it: the note is the text, the arrow
+   reaches down to what it means. Only drawn where there is room for it —
+   below 62rem the intro is a stacked, scrolling column and a floating arrow
+   between two blocks has nothing to span. */
+.note {
+  display: none;
+}
+
+@media (min-width: 62rem) {
+  .note {
+    position: relative;
+    display: block;
+    /* Own stacking context above the links it points into. */
+    z-index: 1;
+    width: max-content;
+    margin-bottom: -0.25rem;
+    margin-left: 0.25rem;
+  }
+
+  .note .doodle {
+    top: 0.9rem;
+    left: calc(100% + 0.1rem);
+    width: 2.75rem;
+    height: 2.4rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Layout
 --------------------------------------------------------------------------- */
 
@@ -290,10 +469,17 @@ html[data-lang='es'] [data-i18n='en'] {
    no way to scroll to them — sticky never releases — so let the column scroll
    with the page instead.
 
-   61rem is measured, not chosen: the intro needs ~973px in either language at
-   the narrowest the column gets. Adding a row to the intro means re-measuring
-   this number. */
-@media (min-width: 62rem) and (max-height: 61rem) {
+   67.5rem is measured, not chosen: at the narrowest the column gets (304px, at
+   exactly 62rem of viewport) the intro needs 1077px in either language, so
+   sticky may only engage from 1081px up. Adding a row to the intro means
+   re-measuring this number — force the flex/`height: auto` shape at a 992px
+   viewport and read the flow height in both languages.
+
+   It was 61rem (976px) and that was already ~74px short of the 1050px the
+   column needed before the contact note existed: between 977px and 1050px tall
+   the column pinned and quietly clipped its own footer. The note added 27px on
+   top of an overflow that was already there. */
+@media (min-width: 62rem) and (max-height: 67.5rem) {
   .intro {
     position: static;
     height: auto;
@@ -342,8 +528,11 @@ html[data-lang='es'] [data-i18n='en'] {
   left: 0;
   bottom: -0.0625rem;
   width: 100%;
-  height: 1px;
-  background: currentColor;
+  height: 1.5px;
+  /* Primary rather than currentColor: the rule is a mark, and marks are the
+     one thing on this page that carry colour. 1.5px because #e35342 only
+     clears contrast as a graphic, and a hairline of it reads as a smudge. */
+  background: var(--color-primary);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.45s var(--ease-out);
@@ -381,6 +570,7 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 .gloss {
+  position: relative;
   border: 0;
   padding: 0;
   background: none;
@@ -388,7 +578,7 @@ html[data-lang='es'] [data-i18n='en'] {
   font: inherit;
   letter-spacing: inherit;
   cursor: help;
-  text-decoration: underline dotted var(--color-faint);
+  text-decoration: underline dotted var(--color-primary);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.22em;
   transition: text-decoration-color 0.35s var(--ease-io);
@@ -396,7 +586,23 @@ html[data-lang='es'] [data-i18n='en'] {
 
 .gloss:hover,
 .gloss:focus-visible {
-  text-decoration-color: var(--color-ink);
+  text-decoration-color: var(--color-primary-ink);
+}
+
+/* The marker swipe behind a glossed term. `z-index: -1` puts it under the word
+   rather than over it, so the term keeps its contrast against the page instead
+   of against the wash — and `--color-primary-wash` rather than the solid, for
+   the same reason. Everything it paints behind is transparent, so dropping
+   below the paragraph costs nothing. */
+.gloss .doodle {
+  z-index: -1;
+  top: 0;
+  left: -0.26em;
+  width: calc(100% + 0.52em);
+  /* The felt tip is 15px of non-scaling stroke centred on the box, so the box
+     only has to sit level with the word — its height barely shows. */
+  height: 100%;
+  color: var(--color-primary-wash);
 }
 
 .gloss-note {
@@ -442,6 +648,7 @@ html[data-lang='es'] [data-i18n='en'] {
 --------------------------------------------------------------------------- */
 
 .axis {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -456,6 +663,25 @@ html[data-lang='es'] [data-i18n='en'] {
   text-align: left;
   cursor: pointer;
   transition: color 0.35s var(--ease-io);
+}
+
+/* The rule under the active axis, sitting on the hairline border rather than
+   replacing it — the row keeps its structure when nothing is hovered.
+   Transitioned, not animated: the mark has to draw *and* undraw as a pointer
+   travels down the three rows, which a `forwards` animation cannot do. */
+.axis-rule {
+  bottom: -0.3125rem;
+  left: 0;
+  width: 100%;
+  height: 0.5rem;
+}
+
+.axis-rule path {
+  transition: stroke-dashoffset 0.5s var(--ease-out);
+}
+
+.axis.is-active .axis-rule path {
+  stroke-dashoffset: 0;
 }
 
 .axis:hover,
@@ -797,5 +1023,31 @@ html[data-lang='es'] [data-i18n='en'] {
   .gloss-note,
   .axis-tools li:hover .tool-icon {
     transform: none;
+  }
+
+  /* Doodles resolve to fully drawn. The marks themselves are the point; the
+     pen travelling across them is not, and a stroke racing along a path is
+     exactly the kind of motion this query exists to stop. The `.mark` and
+     `.note` tilts stay — a static rotation is not movement. */
+  .doodle path {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .doodle-wipe {
+    clip-path: none;
+    animation: none;
+  }
+
+  /* Still keyed to the active axis — which mark is drawn carries meaning here,
+     the same way the axis panel does. It just arrives without being traced. */
+  .axis-rule path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  .axis.is-active .axis-rule path {
+    stroke-dashoffset: 0;
   }
 }

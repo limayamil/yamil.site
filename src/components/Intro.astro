@@ -3,10 +3,32 @@ import { profile } from '../data/profile';
 import { parseGloss } from '../lib/gloss';
 import Axes from './Axes.astro';
 import Bilingual from './Bilingual.astro';
+import Doodle from './Doodle.astro';
 import LangToggle from './LangToggle.astro';
 import Links from './Links.astro';
 
 const languages = ['es', 'en'] as const;
+
+// The ring goes around the surname, not the whole name — a mark that circles
+// everything marks nothing. A single-word name simply gets no ring.
+const nameParts = profile.name.trim().split(/\s+/);
+const surname = nameParts.length > 1 ? nameParts.pop()! : null;
+const givenNames = nameParts.join(' ');
+
+/**
+ * Which glossed term gets the highlighter: the first one in the column, per
+ * language. One marker swipe per bio, not one per term — two would read as a
+ * legend rather than as someone marking the line that mattered.
+ */
+const highlighted = Object.fromEntries(
+  languages.map((lang) => {
+    for (const [p, paragraph] of profile.bio.entries()) {
+      const token = parseGloss(paragraph[lang]).findIndex((t) => t.note);
+      if (token !== -1) return [lang, `${p}:${token}`];
+    }
+    return [lang, null];
+  }),
+) as Record<(typeof languages)[number], string | null>;
 
 // Rendered at build time so the slot is never empty; motion.ts replaces it
 // with the visitor-accurate value on load and keeps it ticking.
@@ -37,7 +59,14 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
 
     <div class="flex flex-col gap-3">
       <h1 class="display enter text-[clamp(2.6rem,4.4vw,3.9rem)]" style="--i:1">
-        {profile.name}
+        {givenNames}{surname && ' '}{
+          surname && (
+            <span class="mark">
+              {surname}
+              <Doodle name="oval" class="doodle-enter" />
+            </span>
+          )
+        }
       </h1>
       <p class="enter text-[0.9375rem] text-muted" style="--i:2">
         <Bilingual es={profile.role.es} en={profile.role.en} />
@@ -50,13 +79,16 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
       {
         languages.map((lang) => (
           <div lang={lang} data-i18n={lang} class="flex flex-col gap-3.5">
-            {profile.bio.map((paragraph) => (
+            {profile.bio.map((paragraph, p) => (
               <p class="prose-tight">
-                {parseGloss(paragraph[lang]).map((token) =>
+                {parseGloss(paragraph[lang]).map((token, t) =>
                   token.note ? (
                     <button type="button" class="gloss" data-gloss>
                       {token.text}
                       <span class="gloss-note">{token.note}</span>
+                      {highlighted[lang] === `${p}:${t}` && (
+                        <Doodle name="highlight" class="doodle-enter doodle-wipe" />
+                      )}
                     </button>
                   ) : (
                     token.text
@@ -84,6 +116,12 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
 
     <div class="flex flex-col gap-3">
       <h2 class="label"><Bilingual es="Contacto" en="Contact" /></h2>
+      {/* Aria-hidden: the arrow points at links that are right there and already
+          labelled. Read aloud, "escribime → Email, LinkedIn" is just noise. */}
+      <p class="note hand" aria-hidden="true">
+        <Bilingual es={profile.contactNote.es} en={profile.contactNote.en} />
+        <Doodle name="arrow" class="doodle-enter" />
+      </p>
       <Links />
     </div>
 

@@ -80,7 +80,9 @@ const ogImage = new URL('/og.png', Astro.site ?? meta.url);
 
     <link rel="sitemap" href="/sitemap-index.xml" />
 
-    <!-- Reveals start hidden and are shown by JS; without it, show everything. -->
+    <!-- Reveals start hidden and are shown by JS; without it, show everything.
+         Doodles start undrawn, so they need resolving the same way — except the
+         axis rule, which is meant to follow a hover that cannot happen here. -->
     <noscript>
       <style>
         [data-reveal],
@@ -88,6 +90,15 @@ const ogImage = new URL('/og.png', Astro.site ?? meta.url);
           opacity: 1 !important;
           transform: none !important;
           animation: none !important;
+        }
+
+        [data-doodle]:not(.axis-rule) path {
+          stroke-dasharray: none !important;
+          stroke-dashoffset: 0 !important;
+        }
+
+        [data-doodle].doodle-wipe {
+          clip-path: none !important;
         }
       </style>
     </noscript>

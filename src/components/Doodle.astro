@@ -1,0 +1,52 @@
+---
+import { doodles, type DoodleName } from '../lib/doodles';
+
+/**
+ * One hand-drawn annotation, laid over whatever it is marking.
+ *
+ * Always absolutely positioned and `pointer-events: none` (see `.doodle` in
+ * `global.css`), so a mark can never add height to the layout or intercept a
+ * click. That matters most in `.intro`, which is pinned to `100svh` on desktop
+ * and has no room to spare.
+ *
+ * `aria-hidden` with no label: these are decoration over text that already
+ * says the thing. A screen reader announcing "circle" around a name would be
+ * noise, not information.
+ */
+interface Props {
+  name: DoodleName;
+  class?: string;
+}
+
+const { name, class: className }: Props = Astro.props;
+const doodle = doodles[name];
+
+// A typo should break the build, not ship an empty box — same rule as ToolIcon.
+if (!doodle) {
+  throw new Error(`Unknown doodle "${name}". Known: ${Object.keys(doodles).join(', ')}`);
+}
+---
+
+<svg
+  class:list={['doodle', doodle.stretch && 'doodle-stretch', className]}
+  viewBox={doodle.viewBox}
+  preserveAspectRatio={doodle.stretch ? 'none' : 'xMidYMid meet'}
+  fill="none"
+  aria-hidden="true"
+  data-doodle
+>
+  {
+    doodle.paths.map((path) => (
+      <path
+        d={path.d}
+        stroke={path.stroke}
+        fill={path.fill}
+        stroke-width={path.strokeWidth}
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        vector-effect={doodle.stretch ? 'non-scaling-stroke' : undefined}
+        pathLength="1"
+      />
+    ))
+  }
+</svg>

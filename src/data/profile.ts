@@ -51,6 +51,13 @@ export interface Profile {
   capabilities: Capability[];
   /** Shown until a capability is hovered. Ties the three together. */
   restingNote: Localized;
+  /**
+   * A margin note beside the contact links, set in the annotation hand with a
+   * drawn arrow pointing into them. One to three words: it is `width: max-content`
+   * next to its own arrow in a ~19rem column, so anything longer collides.
+   * Desktop only — see `.note` in `global.css`.
+   */
+  contactNote: Localized;
   links: Link[];
   location: string;
   /** IANA zone used for the live local clock in the footer. */
@@ -63,8 +70,8 @@ export const profile: Profile = {
   name: 'Yamil Lues',
 
   role: {
-    es: 'Design Engineer entre marketing, producto y operaciones',
-    en: 'Design Engineer between marketing, product and operations',
+    es: 'Diseño y automatizo operaciones entre marketing, producto y web',
+    en: 'I design and automate operations across marketing, product and web',
   },
 
   bio: [
@@ -122,6 +129,11 @@ export const profile: Profile = {
   restingNote: {
     es: 'Tres oficios que en el papel no se llevan bien. En la práctica se cubren las espaldas.',
     en: "Three trades that don't get along on paper. In practice they cover for each other.",
+  },
+
+  contactNote: {
+    es: 'escribime',
+    en: 'say hi',
   },
 
   links: [
