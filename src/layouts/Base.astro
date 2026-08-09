@@ -1,25 +1,53 @@
 ---
 import '../styles/global.css';
 import { meta } from '../data/profile';
+import Bilingual from '../components/Bilingual.astro';
 
 interface Props {
   title?: string;
   description?: string;
 }
 
-const { title = meta.title, description = meta.description } = Astro.props;
+// Spanish is what gets served, so it is what crawlers index. The English copy
+// is in the page too and the inline script below swaps the visible language —
+// but only `document.title` follows, since a client-side <meta> swap buys
+// nothing a crawler will ever read.
+const { title = meta.title.es, description = meta.description.es } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? meta.url);
 const ogImage = new URL('/og.png', Astro.site ?? meta.url);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="es" data-lang="es" data-title-es={meta.title.es} data-title-en={meta.title.en}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+
+    <!-- The one script outside motion.ts, and the reason is timing: motion.ts
+         is deferred, so a stored "en" preference would flash Spanish first.
+         This has to resolve the language before the first paint. -->
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        var lang;
+        try {
+          lang = localStorage.getItem('lang');
+        } catch (error) {
+          // Storage blocked (private mode, hardened settings) — fall through
+          // to the browser's own preference.
+        }
+        if (lang !== 'es' && lang !== 'en') {
+          lang = (navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
+        }
+        root.dataset.lang = lang;
+        root.lang = lang;
+        var title = root.getAttribute('data-title-' + lang);
+        if (title) document.title = title;
+      })();
+    </script>
 
     <!-- Both faces are needed above the fold, so preload rather than let the
          CSS parser discover them. -->
@@ -66,7 +94,9 @@ const ogImage = new URL('/og.png', Astro.site ?? meta.url);
   </head>
 
   <body>
-    <a class="skip-link" href="#work">Skip to work</a>
+    <a class="skip-link" href="#work">
+      <Bilingual es="Ir a los proyectos" en="Skip to work" />
+    </a>
     <slot />
     <script src="../scripts/motion.ts"></script>
   </body>

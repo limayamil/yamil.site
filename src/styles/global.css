@@ -160,6 +160,47 @@ a {
 }
 
 /* ---------------------------------------------------------------------------
+   Language switch — both languages ship in the HTML and one of them is shown.
+   `display: none` (rather than a visual-only hide) is deliberate: it drops the
+   inactive language out of the accessibility tree too, so a screen reader
+   reads the page once, not twice.
+--------------------------------------------------------------------------- */
+
+html[data-lang='en'] [data-i18n='es'],
+html[data-lang='es'] [data-i18n='en'] {
+  display: none;
+}
+
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.lang-option {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-faint);
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  transition: color 0.35s var(--ease-io);
+}
+
+.lang-option:hover,
+.lang-option:focus-visible {
+  color: var(--color-ink);
+}
+
+.lang-option[aria-pressed='true'] {
+  color: var(--color-ink);
+}
+
+/* ---------------------------------------------------------------------------
    Motion primitives — only transform + opacity, so every frame stays on the
    compositor and never triggers layout or paint.
 --------------------------------------------------------------------------- */
@@ -247,8 +288,12 @@ a {
 /* The pinned column only works while its content fits a viewport-tall box.
    Under that, `height: 100svh` would push contact + clock below the fold with
    no way to scroll to them — sticky never releases — so let the column scroll
-   with the page instead. */
-@media (min-width: 62rem) and (max-height: 58rem) {
+   with the page instead.
+
+   61rem is measured, not chosen: the intro needs ~973px in either language at
+   the narrowest the column gets. Adding a row to the intro means re-measuring
+   this number. */
+@media (min-width: 62rem) and (max-height: 61rem) {
   .intro {
     position: static;
     height: auto;
@@ -315,6 +360,208 @@ a {
 
 .link:hover .arrow {
   transform: translate3d(2px, -2px, 0);
+}
+
+/* ---------------------------------------------------------------------------
+   Glossed terms — a marked word in the bio opens its own footnote.
+
+   The note is absolutely positioned, so opening one never reflows the
+   paragraph around it. `.gloss` is an inline-block button and will not break
+   across lines: keep marked terms to a single word.
+
+   The note is anchored to the paragraph, not to the word. Anchoring to the
+   word puts a fixed-width box wherever the term happens to land, which runs
+   off the right edge on a phone; anchoring to the paragraph means the note can
+   never be wider than the column it sits in. One gloss per paragraph — two
+   would stack their notes on top of each other.
+--------------------------------------------------------------------------- */
+
+.bio p {
+  position: relative;
+}
+
+.gloss {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: help;
+  text-decoration: underline dotted var(--color-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition: text-decoration-color 0.35s var(--ease-io);
+}
+
+.gloss:hover,
+.gloss:focus-visible {
+  text-decoration-color: var(--color-ink);
+}
+
+.gloss-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 20;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--color-line),
+    0 10px 24px rgb(17 17 16 / 0.09);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  opacity: 0;
+  transform: translate3d(0, -4px, 0);
+  pointer-events: none;
+  transition:
+    opacity 0.3s var(--ease-io),
+    transform 0.4s var(--ease-out);
+}
+
+.gloss:hover .gloss-note,
+.gloss:focus-visible .gloss-note,
+.gloss[data-open='true'] .gloss-note {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Capability axes — three rows over one shared, fixed-height panel.
+
+   Every slot is stacked in the same absolutely-positioned box, so moving
+   between disciplines cross-fades in place. Nothing here can change the
+   height of the pinned intro column.
+--------------------------------------------------------------------------- */
+
+.axis {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  background: none;
+  color: var(--color-faint);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.35s var(--ease-io);
+}
+
+.axis:hover,
+.axis:focus-visible,
+.axis.is-active {
+  color: var(--color-ink);
+}
+
+.axis-icon {
+  flex: none;
+  transition: transform 0.5s var(--ease-out);
+}
+
+/* Icon and title shift together, so the row moves as one object rather than
+   animating two parts against each other. Same 3px as `.card-title`. */
+.axis:hover .axis-icon,
+.axis:focus-visible .axis-icon,
+.axis.is-active .axis-icon {
+  transform: translate3d(3px, 0, 0);
+}
+
+.axis-title {
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  transition: transform 0.5s var(--ease-out);
+}
+
+.axis:hover .axis-title,
+.axis:focus-visible .axis-title,
+.axis.is-active .axis-title {
+  transform: translate3d(3px, 0, 0);
+}
+
+.axis-cue {
+  flex: none;
+  opacity: 0;
+  transform: translate3d(-3px, 0, 0);
+  transition:
+    opacity 0.3s var(--ease-io),
+    transform 0.45s var(--ease-out);
+}
+
+.axis:hover .axis-cue,
+.axis:focus-visible .axis-cue,
+.axis.is-active .axis-cue {
+  opacity: 1;
+  transform: none;
+}
+
+.axis-panel {
+  position: relative;
+  /* Sized to the tallest slot in either language at the narrowest the column
+     gets (~19rem, where the tool chips wrap onto two lines). Copy that
+     outgrows this box gets clipped rather than pushing the pinned column —
+     that is the trade. Keep each `line` to one sentence and `tools` to four. */
+  min-height: 5.75rem;
+  margin-top: 0.875rem;
+}
+
+.axis-slot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  opacity: 0;
+  transform: translate3d(0, 5px, 0);
+  pointer-events: none;
+  transition:
+    opacity 0.35s var(--ease-io),
+    transform 0.5s var(--ease-out);
+}
+
+.axis-slot.is-active {
+  opacity: 1;
+  transform: none;
+}
+
+.axis-rest {
+  justify-content: center;
+  color: var(--color-faint);
+  font-size: 0.8125rem;
+  text-wrap: pretty;
+}
+
+.axis-kicker {
+  color: var(--color-muted);
+}
+
+.axis-line {
+  font-size: 0.8125rem;
+  color: var(--color-ink);
+}
+
+.axis-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem 0.5rem;
+  margin-top: 0.125rem;
+  color: var(--color-faint);
+  font-size: 0.75rem;
+}
+
+.axis-tools li + li::before {
+  content: '·';
+  margin-right: 0.5rem;
 }
 
 /* ---------------------------------------------------------------------------
@@ -494,5 +741,18 @@ a {
 
   .card-media[data-placeholder]::after {
     display: none;
+  }
+
+  /* The axes and the glosses still switch — they carry meaning, not decoration
+     — they just arrive without travel. */
+  .axis:hover .axis-icon,
+  .axis:focus-visible .axis-icon,
+  .axis.is-active .axis-icon,
+  .axis:hover .axis-title,
+  .axis:focus-visible .axis-title,
+  .axis.is-active .axis-title,
+  .axis-slot,
+  .gloss-note {
+    transform: none;
   }
 }

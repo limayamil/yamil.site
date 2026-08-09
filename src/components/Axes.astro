@@ -1,0 +1,85 @@
+---
+import { profile } from '../data/profile';
+import Bilingual from './Bilingual.astro';
+import Icon from './Icon.astro';
+
+/**
+ * The three disciplines, and one shared panel that explains whichever is
+ * active.
+ *
+ * A shared panel rather than per-row accordions because `.intro` is pinned at
+ * `height: 100svh` on desktop — every slot is absolutely positioned inside a
+ * fixed-height box, so switching between them cannot move the column.
+ *
+ * The panel is decorative duplication: each button already carries its own
+ * copy as `sr-only` text, so a screen reader gets the full content inline
+ * without depending on hover or on a chatty live region.
+ */
+---
+
+<section class="flex flex-col gap-3">
+  <h2 class="label"><Bilingual es="En qué soy bueno" en="What I'm good at" /></h2>
+
+  <div class="axes" data-axes>
+    <ul>
+      {
+        profile.capabilities.map((capability, index) => (
+          <li>
+            <button type="button" class="axis" data-axis={String(index)}>
+              <Icon name={capability.icon} class="axis-icon" />
+              <span class="axis-title">{capability.title}</span>
+              <svg
+                class="axis-cue"
+                width="8"
+                height="8"
+                viewBox="0 0 8 8"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.75 1.25 5.75 4 2.75 6.75"
+                  stroke="currentColor"
+                  stroke-width="1.1"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span class="sr-only">
+                {' — '}
+                <Bilingual es={capability.tag.es} en={capability.tag.en} />
+                {'. '}
+                <Bilingual es={capability.line.es} en={capability.line.en} />
+                {` ${capability.tools.join(', ')}.`}
+              </span>
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="axis-panel" aria-hidden="true">
+      {/* Default slot. Stays put with JS off, and is what a pointer returns to. */}
+      <p class="axis-slot axis-rest is-active" data-slot="rest">
+        <Bilingual es={profile.restingNote.es} en={profile.restingNote.en} />
+      </p>
+
+      {
+        profile.capabilities.map((capability, index) => (
+          <div class="axis-slot" data-slot={String(index)}>
+            <p class="label axis-kicker">
+              <Bilingual es={capability.tag.es} en={capability.tag.en} />
+            </p>
+            <p class="axis-line prose-tight">
+              <Bilingual es={capability.line.es} en={capability.line.en} />
+            </p>
+            <ul class="axis-tools">
+              {capability.tools.map((tool) => (
+                <li>{tool}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

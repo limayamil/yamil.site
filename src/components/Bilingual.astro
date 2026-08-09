@@ -1,0 +1,26 @@
+---
+/**
+ * Renders both languages and lets CSS pick one, keyed off `html[data-lang]`.
+ *
+ * The switch is `display: none`, so the inactive language also drops out of
+ * the accessibility tree — a screen reader reads one language, not two. Each
+ * side carries its own `lang` so pronunciation follows.
+ */
+interface Props {
+  es: string;
+  en: string;
+  /** Wrapper element. Inline by default so this can sit inside a sentence. */
+  as?: 'span' | 'p' | 'div';
+  class?: string;
+}
+
+const { es, en, as: Tag = 'span', class: className }: Props = Astro.props;
+---
+
+{/* prettier-ignore — the two tags must stay adjacent: whitespace between them
+   would render as a stray space next to whichever language is showing. */}
+<Tag lang="es" data-i18n="es" class={className}>{es}</Tag><Tag
+  lang="en"
+  data-i18n="en"
+  class={className}>{en}</Tag
+>

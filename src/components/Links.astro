@@ -9,12 +9,10 @@ import { profile } from '../data/profile';
         <a
           class="link"
           href={link.href}
-          {...('external' in link && link.external
-            ? { target: '_blank', rel: 'noreferrer noopener' }
-            : {})}
+          {...(link.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
         >
           {link.label}
-          {'external' in link && link.external && (
+          {link.external && (
             <svg
               class="arrow"
               width="8"

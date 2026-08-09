@@ -1,0 +1,13 @@
+---
+/**
+ * ES / EN switch. `aria-pressed` is set server-side to match the `data-lang`
+ * default on `<html>`; the inline head script and `motion.ts` keep it honest
+ * from there.
+ */
+---
+
+<div class="lang-toggle" role="group" aria-label="Idioma / Language">
+  <button type="button" class="lang-option" data-lang-set="es" aria-pressed="true">ES</button>
+  <span aria-hidden="true" class="text-faint">/</span>
+  <button type="button" class="lang-option" data-lang-set="en" aria-pressed="false">EN</button>
+</div>

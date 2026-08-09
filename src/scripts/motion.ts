@@ -1,10 +1,15 @@
 /**
- * The site's entire runtime. Four small jobs, no framework:
+ * The site's entire runtime. Small jobs, no framework:
  *
  *   1. reveal elements once as they enter the viewport
  *   2. play a card's loop on hover (pointer) or when centred (touch)
  *   3. keep the footer clock ticking
  *   4. fetch the footer's live weather reading once, on load
+ *   5. drive the capability panel from whichever axis is hovered or focused
+ *   6. open a bio gloss on tap, where there is no hover to open it
+ *   7. run the ES/EN switch (the language is *resolved* by an inline script in
+ *      Base.astro, which has to beat the first paint — this only reacts to
+ *      clicks after that)
  *
  * Nothing here reads layout during scroll, and every animated property is
  * transform/opacity, so the compositor handles the frames on its own.
@@ -216,9 +221,106 @@ async function initWeather(): Promise<void> {
   }
 }
 
+/* -- 5. Capability axes --------------------------------------------------- */
+
+function initAxes(): void {
+  const root = document.querySelector<HTMLElement>('[data-axes]');
+  if (!root) return;
+
+  const buttons = Array.from(root.querySelectorAll<HTMLElement>('[data-axis]'));
+  const slots = Array.from(root.querySelectorAll<HTMLElement>('[data-slot]'));
+  if (buttons.length === 0 || slots.length === 0) return;
+
+  const show = (key: string) => {
+    for (const slot of slots) slot.classList.toggle('is-active', slot.dataset.slot === key);
+    for (const button of buttons) button.classList.toggle('is-active', button.dataset.axis === key);
+  };
+
+  // A pointer can leave, so it gets the resting copy back on the way out. Touch
+  // cannot, so the first axis stays open and taps move between them — the panel
+  // is never empty and never reverts under a finger.
+  const idle = canHover.matches ? 'rest' : '0';
+  show(idle);
+
+  for (const button of buttons) {
+    const key = button.dataset.axis;
+    if (!key) continue;
+
+    button.addEventListener('pointerenter', () => show(key));
+    button.addEventListener('focus', () => show(key));
+    button.addEventListener('click', () => show(key));
+
+    if (canHover.matches) {
+      button.addEventListener('pointerleave', () => show(idle));
+      button.addEventListener('blur', () => show(idle));
+    }
+  }
+}
+
+/* -- 6. Bio glosses -------------------------------------------------------- */
+
+function initGlosses(): void {
+  // Pointer devices already have this: `.gloss:hover` and `:focus-visible` do
+  // the whole job in CSS. Only touch needs a handler.
+  if (canHover.matches) return;
+
+  const glosses = Array.from(document.querySelectorAll<HTMLElement>('[data-gloss]'));
+  if (glosses.length === 0) return;
+
+  for (const gloss of glosses) {
+    gloss.addEventListener('click', () => {
+      const open = gloss.dataset.open === 'true';
+      // One at a time — two notes overlapping on a phone is unreadable.
+      for (const other of glosses) other.dataset.open = 'false';
+      gloss.dataset.open = String(!open);
+    });
+  }
+}
+
+/* -- 7. Language switch ---------------------------------------------------- */
+
+function initLang(): void {
+  const buttons = Array.from(document.querySelectorAll<HTMLElement>('[data-lang-set]'));
+  if (buttons.length === 0) return;
+
+  const root = document.documentElement;
+
+  const apply = (lang: string) => {
+    root.dataset.lang = lang;
+    root.lang = lang;
+
+    const title = root.getAttribute(`data-title-${lang}`);
+    if (title) document.title = title;
+
+    for (const button of buttons) {
+      button.setAttribute('aria-pressed', String(button.dataset.langSet === lang));
+    }
+  };
+
+  // The inline script already picked a language; catch the markup up to it.
+  apply(root.dataset.lang ?? 'es');
+
+  for (const button of buttons) {
+    button.addEventListener('click', () => {
+      const lang = button.dataset.langSet;
+      if (!lang) return;
+      try {
+        localStorage.setItem('lang', lang);
+      } catch {
+        // Storage blocked — the switch still works, it just won't be
+        // remembered on the next visit.
+      }
+      apply(lang);
+    });
+  }
+}
+
 /* -- boot ----------------------------------------------------------------- */
 
 initReveals();
 initVideos();
 initClock();
 void initWeather();
+initAxes();
+initGlosses();
+initLang();

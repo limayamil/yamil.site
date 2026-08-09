@@ -1,49 +1,146 @@
 /**
  * Everything in the left-hand panel lives here.
  *
- * All values are PLACEHOLDERS — swap them and the layout follows. The only
- * field that changes anything structural is `capabilities`, which renders one
- * row each.
+ * Every visible string is a `{ es, en }` pair — both languages are rendered
+ * into the page and CSS shows one of them, keyed off `html[data-lang]`. See
+ * `Bilingual.astro`.
+ *
+ * The only field that changes anything structural is `capabilities`, which
+ * renders one row and one panel slot each.
  */
 
-export const profile = {
-  // TODO: inferred from the account email — confirm the spelling.
+/** A string in both of the site's languages. */
+export interface Localized {
+  es: string;
+  en: string;
+}
+
+export interface Capability {
+  /** Key into `Icon.astro`. */
+  icon: 'engineering' | 'motion' | 'ops';
+  /** Not translated — the discipline goes by its English name in both. */
+  title: string;
+  /** The hook, shown as a kicker above the panel copy. */
+  tag: Localized;
+  /** The actual claim. One or two sentences, no more — the panel is fixed-height. */
+  line: Localized;
+  tools: string[];
+}
+
+export interface Link {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+export interface Profile {
+  name: string;
+  role: Localized;
+  /**
+   * Bio paragraphs. A term wrapped as `[term](note)` becomes a hoverable
+   * gloss — see `src/lib/gloss.ts`. Keep those terms to a single word: the
+   * gloss renders as an inline-block button and will not break across lines.
+   */
+  bio: Localized[];
+  available: { is: boolean; label: Localized };
+  capabilities: Capability[];
+  /** Shown until a capability is hovered. Ties the three together. */
+  restingNote: Localized;
+  links: Link[];
+  location: string;
+  /** IANA zone used for the live local clock in the footer. */
+  timezone: string;
+  /** Coordinates for the footer's live weather reading (Open-Meteo, no key required). */
+  weather: { lat: number; lon: number };
+}
+
+export const profile: Profile = {
   name: 'Yamil Lues',
-  role: 'Design Engineer & Motion Designer',
+
+  role: {
+    es: 'Design Engineer entre marketing, producto y operaciones',
+    en: 'Design Engineer between marketing, product and operations',
+  },
 
   bio: [
-    'I design and build interfaces end to end — from the first frame of motion to the shipped component. Currently leading marketing operations and design engineering for product teams.',
-    'Previously across brand systems, campaign automation and title design for studios and startups.',
+    {
+      es: 'La mayoría de los procesos no están rotos: están [indocumentados](Nadie los escribió. Viven en la cabeza de tres personas y se rompen la semana que una se toma vacaciones.), que es peor. Ahí empieza mi trabajo.',
+      en: "Most processes aren't broken — they're [undocumented](Nobody wrote them down. They live in three people's heads and break the week one of them takes leave.), which is worse. That's where my work starts.",
+    },
+    {
+      es: 'Traduzco necesidades de negocio en [workflows](Formularios, CRM, integraciones y reporting que se ejecutan solos y dejan rastro.), interfaces y documentación. Si algo se hace tres veces igual, ya no debería hacerlo una persona.',
+      en: "I turn business needs into [workflows](Forms, CRM, integrations and reporting that run themselves and leave a trail.), interfaces and documentation. If something gets done the same way three times, a person shouldn't be doing it.",
+    },
   ],
 
   available: {
     is: true,
-    label: 'Available for select work',
+    label: {
+      es: 'Disponible para proyectos seleccionados',
+      en: 'Available for select work',
+    },
   },
 
   capabilities: [
-    { title: 'Design Engineering', detail: 'React, Astro, design systems, prototypes' },
-    { title: 'Motion Graphics', detail: 'Brand systems, titles, product film' },
-    { title: 'Marketing Operations', detail: 'Lifecycle, automation, analytics' },
+    {
+      icon: 'engineering',
+      title: 'Design Engineering',
+      tag: { es: 'Del Figma al deploy', en: 'From Figma to deploy' },
+      line: {
+        es: 'No entrego pantallas. Entrego decisiones que ya no hay que volver a tomar.',
+        en: "I don't ship screens. I ship decisions nobody has to make twice.",
+      },
+      // Four per axis, deliberately. The panel is a fixed-height box and a
+      // fifth chip wraps it onto another line in the narrow column.
+      tools: ['Astro', 'React', 'WordPress', 'Webflow'],
+    },
+    {
+      icon: 'motion',
+      title: 'Motion Graphics',
+      tag: { es: 'El movimiento explica', en: 'Motion explains' },
+      line: {
+        es: 'Si la animación no explica algo, es ruido con buen timing.',
+        en: "If the animation doesn't explain something, it's noise with good timing.",
+      },
+      tools: ['After Effects', 'DaVinci Resolve', 'Blender', 'Illustrator'],
+    },
+    {
+      icon: 'ops',
+      title: 'Marketing Ops',
+      tag: { es: 'Que lo haga una API', en: 'Let an API do it' },
+      line: {
+        es: 'El trabajo aburrido es un problema de diseño, no de esfuerzo.',
+        en: 'Boring work is a design problem, not an effort problem.',
+      },
+      tools: ['HubSpot', 'Make', 'n8n', 'Looker Studio'],
+    },
   ],
 
+  restingNote: {
+    es: 'Tres oficios que en el papel no se llevan bien. En la práctica se cubren las espaldas.',
+    en: "Three trades that don't get along on paper. In practice they cover for each other.",
+  },
+
   links: [
-    { label: 'Email', href: 'mailto:hello@yamil.site' },
-    { label: 'LinkedIn', href: 'https://linkedin.com/in/placeholder', external: true },
-    { label: 'Instagram', href: 'https://instagram.com/placeholder', external: true },
-    { label: 'Read.cv', href: 'https://read.cv/placeholder', external: true },
+    { label: 'Email', href: 'mailto:yamillues@gmail.com' },
+    { label: 'LinkedIn', href: 'https://www.linkedin.com/in/yamillues/', external: true },
+    // TODO: add Instagram / Read.cv here once the real handles exist. Better an
+    // absent link than one that 404s.
   ],
 
   location: 'Córdoba, Argentina',
-  // IANA zone used for the live local clock in the footer.
   timezone: 'America/Argentina/Cordoba',
-  // Coordinates used to fetch the footer's live weather reading (Open-Meteo, no key required).
   weather: { lat: -31.4201, lon: -64.1888 },
-} as const;
+};
 
 export const meta = {
-  title: `${profile.name} — ${profile.role}`,
-  description:
-    'Portfolio of selected work in design engineering, motion graphics and marketing operations.',
+  title: {
+    es: `${profile.name} — Design Engineering, Motion y Marketing Ops`,
+    en: `${profile.name} — Design Engineering, Motion and Marketing Ops`,
+  },
+  description: {
+    es: 'Diseño, construyo y automatizo: interfaces, motion y operaciones de marketing que le sacan el trabajo manual del medio a los equipos.',
+    en: 'I design, build and automate: interfaces, motion and marketing operations that take manual work off a team’s plate.',
+  },
   url: 'https://yamil.site',
 } as const;
