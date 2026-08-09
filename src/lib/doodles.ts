@@ -91,45 +91,31 @@ const oval = (): Doodle => ({
 });
 
 /**
- * Sits under the active capability axis. One pass, because a rule under a word
- * is a single confident swipe — the doubled line reads as indecision here.
+ * Reaches back from the margin note to the contact link on its left.
+ *
+ * Three drawables merged into one mark: a curved shaft and the two strokes of
+ * the head, in the order a hand would draw them — the stroke-dash reveal
+ * traces the same path, so it has to arrive at the point last.
+ *
+ * Near-horizontal on purpose. The note sits on the same line as the links it
+ * points at, so any real vertical travel would read as pointing at the row
+ * above or below rather than across.
  */
-const underline = (): Doodle => ({
-  viewBox: '0 0 200 10',
-  stretch: true,
-  paths: toPaths(
-    gen.linearPath(
-      [
-        [1, 5],
-        [64, 3.2],
-        [133, 6.4],
-        [199, 4],
-      ],
-      { ...ink, strokeWidth: 1.6, seed: 17, roughness: 0.9, bowing: 1.4, disableMultiStroke: true },
-    ),
-  ),
-});
-
-/**
- * Points from the "Contacto" label down to the links. Three drawables merged
- * into one mark: a curved shaft and the two strokes of the head, drawn in the
- * order a hand would draw them so the stroke-dash reveal traces the same path.
- */
-const arrow = (): Doodle => ({
-  viewBox: '0 0 64 56',
+const arrowLeft = (): Doodle => ({
+  viewBox: '0 0 56 24',
   stretch: false,
   paths: toPaths(
     gen.curve(
       [
-        [7, 5],
-        [30, 12],
-        [44, 27],
-        [48, 45],
+        [52, 8],
+        [38, 13],
+        [22, 14],
+        [7, 12],
       ],
       { ...ink, seed: 29, roughness: 0.9, bowing: 1 },
     ),
-    gen.line(48, 46, 47, 31, { ...ink, seed: 30, roughness: 1.1, disableMultiStroke: true }),
-    gen.line(48, 46, 34, 40, { ...ink, seed: 31, roughness: 1.1, disableMultiStroke: true }),
+    gen.line(6, 12, 18, 6, { ...ink, seed: 30, roughness: 1.1, disableMultiStroke: true }),
+    gen.line(6, 12, 17, 18, { ...ink, seed: 31, roughness: 1.1, disableMultiStroke: true }),
   ),
 });
 
@@ -160,8 +146,7 @@ const highlight = (): Doodle => ({
 
 export const doodles = {
   oval: oval(),
-  underline: underline(),
-  arrow: arrow(),
+  arrowLeft: arrowLeft(),
   highlight: highlight(),
 } satisfies Record<string, Doodle>;
 

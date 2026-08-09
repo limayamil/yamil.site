@@ -116,13 +116,21 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
 
     <div class="flex flex-col gap-3">
       <h2 class="label"><Bilingual es="Contacto" en="Contact" /></h2>
-      {/* Aria-hidden: the arrow points at links that are right there and already
-          labelled. Read aloud, "escribime → Email, LinkedIn" is just noise. */}
-      <p class="note hand" aria-hidden="true">
-        <Bilingual es={profile.contactNote.es} en={profile.contactNote.en} />
-        <Doodle name="arrow" class="doodle-enter" />
-      </p>
-      <Links />
+
+      {/* The note rides on the same line as the links so its arrow can reach
+          back into the row. Laid out as a sibling of the list rather than
+          inside it: the list is the semantic set of contact links, and a
+          decorative aside is not one of them.
+
+          Aria-hidden: it points at links that are right there and already
+          labelled. Read aloud, "escribime, Email, LinkedIn" is just noise. */}
+      <div class="contact-row">
+        <Links />
+        <p class="note hand" aria-hidden="true">
+          <Doodle name="arrowLeft" class="doodle-enter" />
+          <Bilingual es={profile.contactNote.es} en={profile.contactNote.en} />
+        </p>
+      </div>
     </div>
 
     <p class="flex items-center gap-2 text-[0.8125rem] text-faint">

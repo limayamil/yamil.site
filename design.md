@@ -56,9 +56,12 @@ que el texto al lado dice. El verde ahí no es decoración, es semántica.
 
 ## 2. Sistema de doodles
 
-Las marcas a mano alzada — óvalo, subrayado, flecha, resaltador — se generan con
+Las marcas a mano alzada — óvalo, flecha, resaltador — se generan con
 [rough.js](https://roughjs.com) en [src/lib/doodles.ts](src/lib/doodles.ts) y se
 renderizan con [Doodle.astro](src/components/Doodle.astro).
+
+Sólo viven ahí las formas que se usan. Una forma sin consumidor es código
+muerto en un archivo que se evalúa en cada build.
 
 ### Por qué en build y no en runtime
 
@@ -83,8 +86,8 @@ diffearía sin motivo. **Toda forma nueva pinea su `seed`.**
 
 | Modo | `stretch` | Cómo se renderiza | Para qué |
 |---|---|---|---|
-| Fijo | `false` | Aspect ratio conservado, tamaño conocido | Marcas que no dependen de un ancho ajeno (`arrow`) |
-| Estirable | `true` | `preserveAspectRatio="none"` + `vector-effect="non-scaling-stroke"` | Marcas que abarcan un elemento de ancho desconocido (`oval`, `underline`, `highlight`) |
+| Fijo | `false` | Aspect ratio conservado, tamaño conocido | Marcas que no dependen de un ancho ajeno (`arrowLeft`) |
+| Estirable | `true` | `preserveAspectRatio="none"` + `vector-effect="non-scaling-stroke"` | Marcas que abarcan un elemento de ancho desconocido (`oval`, `highlight`) |
 
 El modo estirable es lo que **reemplaza al medir-el-DOM** que haría una librería
 en runtime: el SVG se adapta a la caja donde se lo pone, y `non-scaling-stroke`
@@ -115,9 +118,8 @@ anima alrededor:
   `clip-path` desde la izquierda — el mismo gesto que `.link::after`.
 - `.doodle-enter` monta sobre el stagger `--i` del ancestro `.enter`, con 700ms
   de retraso: anotar algo antes de que exista se lee al revés.
-- `.axis-rule` va por transición atada a `.is-active`, que `motion.ts` ya
-  togglea. Tiene que dibujarse **y desdibujarse** mientras el puntero recorre
-  las tres filas, cosa que una animación `forwards` no puede hacer.
+- `[data-reveal].is-visible` está cableado para marcas que entren por scroll,
+  aunque hoy ninguna lo use.
 
 ---
 
@@ -153,18 +155,30 @@ Cinco gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 | # | Dónde | Marca | Se dispara con |
 |---|---|---|---|
 | 1 | `h1`, el apellido — [Intro.astro](src/components/Intro.astro) | Óvalo (`oval`) | `.enter` del `h1` (`--i:1`) |
-| 2 | Botón de eje activo — [Axes.astro](src/components/Axes.astro) | Subrayado (`underline`) | `.is-active`, vía `motion.ts` |
-| 3 | Label "Contacto" → links — [Intro.astro](src/components/Intro.astro) | Flecha (`arrow`) + nota manuscrita | `.enter` del bloque inferior (`--i:5`) |
-| 4 | Primer término glosado del bio | Resaltador (`highlight`) | `.enter` del bio (`--i:3`) |
-| 5 | Links de contacto — [Links.astro](src/components/Links.astro) | Subrayado en primario (CSS puro) | hover / focus |
+| 2 | A la derecha de los links de contacto | Flecha (`arrowLeft`) + nota manuscrita | `.enter` del bloque inferior (`--i:5`) |
+| 3 | Primer término glosado del bio | Resaltador (`highlight`) | `.enter` del bio (`--i:3`) |
+| 4 | Links de contacto — [Links.astro](src/components/Links.astro) | Subrayado en primario (CSS puro) | hover / focus |
 
-El texto de la nota #3 es dato, no markup: `profile.contactNote` en
+El texto de la nota #2 es dato, no markup: `profile.contactNote` en
 [profile.ts](src/data/profile.ts).
 
 La marca #1 rodea **el apellido**, no el nombre completo: una marca que rodea
-todo no marca nada. La #4 resalta **el primer** término glosado de cada idioma,
+todo no marca nada. La #3 resalta **el primer** término glosado de cada idioma,
 no todos: un resaltador por columna se lee como alguien marcando la línea que
 importó; tres se leen como una leyenda.
+
+**La nota #2 va en la misma línea que los links, no arriba.** La flecha apunta
+hacia la izquierda, de vuelta al último link, y se dibuja dentro del
+`column-gap` de `.contact-row` — por eso ese gap es un número medido (3.5rem) y
+no el espaciado propio de la lista. La nota no se empuja al borde derecho de la
+columna: dejaría ~200px entre la punta de la flecha y el link, y una flecha que
+no llega a lo que señala no señala nada.
+
+### Los ejes no llevan marca
+
+Se probó un subrayado rugoso bajo el eje activo y se quitó: las tres filas ya
+tienen borde inferior propio, y una marca encima competía con esa estructura en
+vez de sumarse. El estado activo lo siguen llevando el color y el chevron.
 
 ---
 
@@ -201,14 +215,16 @@ importó; tres se leen como una leyenda.
 agregue tiene que entrar en un viewport.
 
 **Medido:** con la columna en su punto más angosto (304px, en un viewport de
-exactamente 62rem), el intro necesita **1077px** en ambos idiomas. Por eso el
-escape hatch de `global.css` está en `max-height: 67.5rem` (1080px): sticky sólo
-puede activarse de 1081px para arriba.
+exactamente 62rem), el intro necesita **1050px** en ambos idiomas. Por eso el
+escape hatch de `global.css` está en `max-height: 65.75rem` (1052px, dos de
+margen para redondeo sub-pixel): sticky sólo puede activarse de 1053px para
+arriba.
 
-> Ese número estaba en 61rem (976px) y ya se quedaba ~74px corto **antes** de que
-> existiera la nota de contacto: entre 977px y 1050px de alto, la columna se
-> pinneaba y recortaba su propio footer en silencio. La nota sumó 27px sobre un
-> overflow que ya estaba.
+> Ese número estaba en 61rem (976px) y ya se quedaba ~74px corto: entre 977px y
+> 1050px de alto, la columna se pinneaba y recortaba su propio footer en
+> silencio. La nota de contacto no agrega nada — va en la fila de los links, no
+> en una propia — así que el número corregido es el que esta columna siempre
+> necesitó.
 
 **Cómo re-medirlo** (obligatorio si se agrega una fila al intro): poner el
 viewport en 992px de ancho, forzar sobre `.intro` la forma flex con

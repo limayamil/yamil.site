@@ -401,10 +401,21 @@ html[data-lang='es'] [data-i18n='en'] {
   transform: rotate(-1.2deg);
 }
 
-/* An aside pointing at the thing below it: the note is the text, the arrow
-   reaches down to what it means. Only drawn where there is room for it —
-   below 62rem the intro is a stacked, scrolling column and a floating arrow
-   between two blocks has nothing to span. */
+/* An aside sitting to the right of the contact links, reaching back into them
+   with a drawn arrow. The gap is what the arrow is drawn into, which is why it
+   is a measured number and not the list's own spacing.
+
+   Hidden below 62rem: the note plus its arrow needs ~100px of slack beside a
+   row that is already wrapping on a phone, and a margin note that wraps to its
+   own line stops being a margin note. */
+.contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 3.5rem;
+  row-gap: 0.5rem;
+}
+
 .note {
   display: none;
 }
@@ -413,18 +424,17 @@ html[data-lang='es'] [data-i18n='en'] {
   .note {
     position: relative;
     display: block;
-    /* Own stacking context above the links it points into. */
-    z-index: 1;
     width: max-content;
-    margin-bottom: -0.25rem;
-    margin-left: 0.25rem;
   }
 
+  /* Drawn into the row's column-gap, tip stopping just short of the link so
+     the arrow reads as pointing *at* it rather than touching it. */
   .note .doodle {
-    top: 0.9rem;
-    left: calc(100% + 0.1rem);
+    top: 50%;
+    right: calc(100% + 0.35rem);
     width: 2.75rem;
-    height: 2.4rem;
+    height: 1.5rem;
+    transform: translateY(-50%);
   }
 }
 
@@ -469,17 +479,19 @@ html[data-lang='es'] [data-i18n='en'] {
    no way to scroll to them — sticky never releases — so let the column scroll
    with the page instead.
 
-   67.5rem is measured, not chosen: at the narrowest the column gets (304px, at
-   exactly 62rem of viewport) the intro needs 1077px in either language, so
-   sticky may only engage from 1081px up. Adding a row to the intro means
-   re-measuring this number — force the flex/`height: auto` shape at a 992px
-   viewport and read the flow height in both languages.
+   65.75rem is measured, not chosen: at the narrowest the column gets (304px, at
+   exactly 62rem of viewport) the intro needs 1050px in either language, and
+   1052px leaves two for sub-pixel rounding — so sticky may only engage from
+   1053px up. Adding a row to the intro means re-measuring this number: force
+   the flex/`height: auto` shape at a 992px viewport and read the flow height in
+   both languages.
 
-   It was 61rem (976px) and that was already ~74px short of the 1050px the
-   column needed before the contact note existed: between 977px and 1050px tall
-   the column pinned and quietly clipped its own footer. The note added 27px on
-   top of an overflow that was already there. */
-@media (min-width: 62rem) and (max-height: 67.5rem) {
+   It was 61rem (976px), which was already ~74px short of that same 1050px:
+   between 977px and 1050px tall the column pinned and quietly clipped its own
+   footer. The contact note costs nothing here — it rides in the links row
+   rather than taking one of its own — so the corrected number is the number
+   this column always needed. */
+@media (min-width: 62rem) and (max-height: 65.75rem) {
   .intro {
     position: static;
     height: auto;
@@ -648,7 +660,6 @@ html[data-lang='es'] [data-i18n='en'] {
 --------------------------------------------------------------------------- */
 
 .axis {
-  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -663,25 +674,6 @@ html[data-lang='es'] [data-i18n='en'] {
   text-align: left;
   cursor: pointer;
   transition: color 0.35s var(--ease-io);
-}
-
-/* The rule under the active axis, sitting on the hairline border rather than
-   replacing it — the row keeps its structure when nothing is hovered.
-   Transitioned, not animated: the mark has to draw *and* undraw as a pointer
-   travels down the three rows, which a `forwards` animation cannot do. */
-.axis-rule {
-  bottom: -0.3125rem;
-  left: 0;
-  width: 100%;
-  height: 0.5rem;
-}
-
-.axis-rule path {
-  transition: stroke-dashoffset 0.5s var(--ease-out);
-}
-
-.axis.is-active .axis-rule path {
-  stroke-dashoffset: 0;
 }
 
 .axis:hover,
@@ -1038,16 +1030,5 @@ html[data-lang='es'] [data-i18n='en'] {
   .doodle-wipe {
     clip-path: none;
     animation: none;
-  }
-
-  /* Still keyed to the active axis — which mark is drawn carries meaning here,
-     the same way the axis panel does. It just arrives without being traced. */
-  .axis-rule path {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-  }
-
-  .axis.is-active .axis-rule path {
-    stroke-dashoffset: 0;
   }
 }
