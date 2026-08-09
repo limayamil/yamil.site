@@ -515,6 +515,16 @@ html[data-lang='es'] [data-i18n='en'] {
   margin-top: 0.875rem;
 }
 
+/* Below 62rem the tool names are visible and the marks wrap to two rows, so
+   the box needs more room. It can afford it: `.intro` is a plain block here,
+   not a pinned 100svh column. Still a fixed height — switching axes must not
+   make the page jump under a thumb. */
+@media (max-width: 61.999rem) {
+  .axis-panel {
+    min-height: 8rem;
+  }
+}
+
 .axis-slot {
   position: absolute;
   inset: 0;
@@ -529,9 +539,12 @@ html[data-lang='es'] [data-i18n='en'] {
     transform 0.5s var(--ease-out);
 }
 
+/* Only the visible slot takes the pointer — otherwise the three stacked
+   inactive slots would swallow hovers meant for the tool marks underneath. */
 .axis-slot.is-active {
   opacity: 1;
   transform: none;
+  pointer-events: auto;
 }
 
 .axis-rest {
@@ -550,18 +563,47 @@ html[data-lang='es'] [data-i18n='en'] {
   color: var(--color-ink);
 }
 
+/* The stack, drawn. Each mark carries a `<title>`, so hovering one names it —
+   that is the trade for dropping the written labels. */
 .axis-tools {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.125rem 0.5rem;
-  margin-top: 0.125rem;
+  align-items: center;
+  gap: 0.375rem 0.625rem;
+  margin-top: 0.25rem;
   color: var(--color-faint);
+}
+
+.axis-tools li {
+  display: flex;
+  align-items: center;
+  gap: 0.3125rem;
+}
+
+/* The names ride along on narrow screens, where there is no hover to surface
+   the `<title>` tooltip — and where `.intro` is a plain block, so the extra
+   line costs nothing. Above 62rem the column is pinned to 100svh and the
+   marks have to carry it alone. */
+.tool-name {
   font-size: 0.75rem;
 }
 
-.axis-tools li + li::before {
-  content: '·';
-  margin-right: 0.5rem;
+@media (min-width: 62rem) {
+  .tool-name {
+    display: none;
+  }
+}
+
+.tool-icon {
+  cursor: default;
+  transition:
+    color 0.3s var(--ease-io),
+    transform 0.4s var(--ease-out);
+}
+
+.axis-tools li:hover .tool-icon {
+  color: var(--color-ink);
+  transform: translate3d(0, -2px, 0);
 }
 
 /* ---------------------------------------------------------------------------
@@ -752,7 +794,8 @@ html[data-lang='es'] [data-i18n='en'] {
   .axis:focus-visible .axis-title,
   .axis.is-active .axis-title,
   .axis-slot,
-  .gloss-note {
+  .gloss-note,
+  .axis-tools li:hover .tool-icon {
     transform: none;
   }
 }

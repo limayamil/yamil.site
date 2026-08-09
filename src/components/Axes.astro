@@ -1,7 +1,12 @@
 ---
 import { profile } from '../data/profile';
+import { toolIcons } from '../lib/tool-icons';
 import Bilingual from './Bilingual.astro';
 import Icon from './Icon.astro';
+import ToolIcon from './ToolIcon.astro';
+
+/** The stack is drawn, not written — a screen reader still gets the names. */
+const toolNames = (tools: string[]) => tools.map((tool) => toolIcons[tool]?.title ?? tool).join(', ');
 
 /**
  * The three disciplines, and one shared panel that explains whichever is
@@ -49,7 +54,7 @@ import Icon from './Icon.astro';
                 <Bilingual es={capability.tag.es} en={capability.tag.en} />
                 {'. '}
                 <Bilingual es={capability.line.es} en={capability.line.en} />
-                {` ${capability.tools.join(', ')}.`}
+                {` ${toolNames(capability.tools)}.`}
               </span>
             </button>
           </li>
@@ -74,7 +79,12 @@ import Icon from './Icon.astro';
             </p>
             <ul class="axis-tools">
               {capability.tools.map((tool) => (
-                <li>{tool}</li>
+                <li>
+                  <ToolIcon name={tool} />
+                  {/* Only rendered below 62rem — see `.tool-name`. A phone has
+                      no hover, so the `<title>` tooltip is unreachable there. */}
+                  <span class="tool-name">{toolIcons[tool]?.title ?? tool}</span>
+                </li>
               ))}
             </ul>
           </div>

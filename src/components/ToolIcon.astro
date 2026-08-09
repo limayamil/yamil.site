@@ -1,0 +1,30 @@
+---
+import { toolIcons } from '../lib/tool-icons';
+
+/**
+ * One brand mark. The `<title>` is what a sighted visitor gets on hover — the
+ * icons replaced the tool names, so the name has to stay reachable somehow.
+ *
+ * No ARIA here on purpose: the whole panel is `aria-hidden`, and each axis
+ * button already carries its full tool list as `sr-only` text. Labelling these
+ * too would just make a screen reader read the stack twice.
+ */
+interface Props {
+  name: string;
+}
+
+const { name }: Props = Astro.props;
+const icon = toolIcons[name];
+
+// A typo in `profile.ts` should break the build, not ship a blank square.
+if (!icon) {
+  throw new Error(
+    `Unknown tool icon "${name}". Known icons: ${Object.keys(toolIcons).join(', ')}`,
+  );
+}
+---
+
+<svg class="tool-icon" width="14" height="14" viewBox={icon.viewBox} fill="currentColor">
+  <title>{icon.title}</title>
+  <path d={icon.path}></path>
+</svg>

@@ -249,11 +249,18 @@ function initAxes(): void {
     button.addEventListener('pointerenter', () => show(key));
     button.addEventListener('focus', () => show(key));
     button.addEventListener('click', () => show(key));
+  }
 
-    if (canHover.matches) {
-      button.addEventListener('pointerleave', () => show(idle));
-      button.addEventListener('blur', () => show(idle));
-    }
+  if (canHover.matches) {
+    // Reset from the container, not from each button. The panel sits below the
+    // rows, so a per-button `pointerleave` would close it the moment the
+    // pointer travelled down toward the tool marks — which are themselves
+    // hoverable, and unreachable if the panel keeps snapping back.
+    root.addEventListener('pointerleave', () => show(idle));
+    root.addEventListener('focusout', (event) => {
+      const next = (event as FocusEvent).relatedTarget;
+      if (!(next instanceof Node) || !root.contains(next)) show(idle);
+    });
   }
 }
 

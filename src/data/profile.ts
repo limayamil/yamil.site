@@ -24,6 +24,11 @@ export interface Capability {
   tag: Localized;
   /** The actual claim. One or two sentences, no more — the panel is fixed-height. */
   line: Localized;
+  /**
+   * Keys into `src/lib/tool-icons.ts`, rendered as brand marks rather than
+   * names. An unknown key fails the build. Six or seven fit on one row in the
+   * narrow column; more wraps and eats the panel's fixed height.
+   */
   tools: string[];
 }
 
@@ -90,9 +95,7 @@ export const profile: Profile = {
         es: 'No entrego pantallas. Entrego decisiones que ya no hay que volver a tomar.',
         en: "I don't ship screens. I ship decisions nobody has to make twice.",
       },
-      // Four per axis, deliberately. The panel is a fixed-height box and a
-      // fifth chip wraps it onto another line in the narrow column.
-      tools: ['Astro', 'React', 'WordPress', 'Webflow'],
+      tools: ['astro', 'react', 'nextjs', 'typescript', 'wordpress', 'webflow', 'supabase'],
     },
     {
       icon: 'motion',
@@ -102,7 +105,7 @@ export const profile: Profile = {
         es: 'Si la animación no explica algo, es ruido con buen timing.',
         en: "If the animation doesn't explain something, it's noise with good timing.",
       },
-      tools: ['After Effects', 'DaVinci Resolve', 'Blender', 'Illustrator'],
+      tools: ['aftereffects', 'illustrator', 'photoshop', 'davinci', 'blender'],
     },
     {
       icon: 'ops',
@@ -112,7 +115,7 @@ export const profile: Profile = {
         es: 'El trabajo aburrido es un problema de diseño, no de esfuerzo.',
         en: 'Boring work is a design problem, not an effort problem.',
       },
-      tools: ['HubSpot', 'Make', 'n8n', 'Looker Studio'],
+      tools: ['hubspot', 'make', 'n8n', 'ga4', 'gtm', 'looker'],
     },
   ],
 
