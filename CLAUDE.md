@@ -40,7 +40,11 @@ A `tools` entry in `profile.ts` is a **key into `toolIcons`**, not a display nam
 
 **Bio glosses.** A term written as `[término](nota)` in a `profile.ts` bio becomes a hoverable footnote, parsed at build time by [src/lib/gloss.ts](src/lib/gloss.ts) into plain text nodes (never `set:html`). Keep marked terms to one word — `.gloss` is an inline-block button and will not break across lines — and one gloss per paragraph, since notes anchor to the paragraph.
 
-**Runtime JS is a single file**, [src/scripts/motion.ts](src/scripts/motion.ts), loaded directly (not a framework island). Its header comment enumerates the jobs; keep that list in sync when adding one:
+**Runtime JS is two files**, both loaded directly (never a framework island), and the split is the point:
+
+- [src/scripts/veil.ts](src/scripts/veil.ts) — the animated background, and nothing else. It was kept out of `motion.ts` because a GL context is not a small DOM job: it sizes itself off a `ResizeObserver`, stands down on `visibilitychange`, rebuilds itself after `webglcontextlost`, and renders a single frame instead of looping under `prefers-reduced-motion`. It also must not queue behind the deferred script, since it paints the first thing on screen.
+- [src/scripts/motion.ts](src/scripts/motion.ts) — everything else. Its header comment enumerates the jobs; keep that list in sync when adding one:
+
 1. Scroll-reveal elements tagged `[data-reveal]` via `IntersectionObserver`, with a scroll-based sweep as a fallback for elements that never cross a frame boundary (e.g. restored scroll position).
 2. Play/pause project-card videos on hover (pointer devices) or on-screen-centered (touch), via `canHover` media query branching.
 3. Keep the footer's local clock ticking, aligned to the minute boundary rather than a naive `setInterval`.
@@ -49,7 +53,15 @@ A `tools` entry in `profile.ts` is a **key into `toolIcons`**, not a display nam
 6. Open a bio gloss on tap, where there is no hover to open it.
 7. React to ES/EN toggle clicks (resolution happens in the head script, above).
 
-State is always expressed as a `data-*` attribute or a class that CSS reacts to — never inline styles. Every animated property driven by this script is transform/opacity only, so the compositor handles frames without layout reads during scroll. `<noscript>` in `Base.astro` force-shows everything if JS is unavailable.
+State is always expressed as a `data-*` attribute or a class that CSS reacts to — never inline styles. Every animated property driven by `motion.ts` is transform/opacity only, so the compositor handles frames without layout reads during scroll. `<noscript>` in `Base.astro` force-shows everything if JS is unavailable.
+
+**The background is a shader, and the scrim over it is load-bearing.** [SolarVeil.astro](src/components/SolarVeil.astro) mounts a fixed, full-viewport canvas plus a `.veil-scrim` overlay; the shell above it is lifted out of the way with `position: relative; z-index: 1`, which also traps `.gloss .doodle`'s `z-index: -1` inside the shell instead of letting it fall behind the page.
+
+The two halves carry opposite guarantees, and conflating them is the mistake to avoid:
+- **The canvas is enhancement.** No WebGL2, a lost context, a blocked script — any of these is fine, and `body` carries a static gradient that stands in for it.
+- **The scrim is not.** Every ratio in the `@theme` block is measured *through* it, against the brightest frame the shader can produce, so it has to be there whether or not the canvas ever paints. Its two alphas and the shader's `brightness` are the only levers on that budget; moving one means re-running the measurement in design.md §7.
+
+The shader carries no dependency. It arrived as a React component driven by `ogl`, and both were dropped: `veil.ts` talks to raw WebGL2, and the GLSL was cut down to the path its own preset actually reached (the original's ~40 uniforms were nearly all switched off). The full original is kept, unbuilt and untyped, in [docs/reference](docs/reference/).
 
 **The intro column has a hard height budget.** `.intro` is `position: sticky; height: 100svh` above 62rem, so anything added to it must fit one viewport. Two mechanisms hold that line, and both are measured numbers, not guesses:
 - `.axis-panel` has a fixed `min-height` and stacks all its slots absolutely, so switching disciplines cannot move the column. Copy that outgrows the box is clipped. Budget: one sentence per `line`, and enough `tools` to stay on one row (seven marks fit a 19rem column). The box gets a taller `min-height` below 62rem, where the tool names are visible and the column is no longer pinned.
@@ -58,6 +70,6 @@ State is always expressed as a `data-*` attribute or a class that CSS reacts to 
 
 **Fonts are self-hosted**, not pulled from `@fontsource` at runtime: the woff2 files are copied out of `node_modules/@fontsource*` into `public/fonts/` and referenced by hand in [src/styles/global.css](src/styles/global.css) `@font-face` rules. After bumping the `@fontsource-variable/inter-tight`, `@fontsource/instrument-serif` or `@fontsource/caveat` versions, re-copy the woff2 files manually (see comment at top of `global.css`). Caveat is deliberately not preloaded — it only sets margin notes.
 
-**Design tokens** (colors, fonts, easing curves) are centralized in the `@theme` block at the top of `global.css`, consumed via Tailwind's generated `--color-*`/`--font-*` utilities. The palette is five neutrals plus `--color-primary` (`#e35342`) and two derivatives; **which primary token to use is a contrast decision, not a taste one** — the ratios are in the `@theme` comment and in [design.md](design.md).
+**Design tokens** (colors, fonts, easing curves) are centralized in the `@theme` block at the top of `global.css`, consumed via Tailwind's generated `--color-*`/`--font-*` utilities. The palette is dark — five neutrals on `--color-bg: #120906`, which is deliberately the same value as the shader's darkest colour — plus `--color-primary` (`#e35342`) and two derivatives. **Which primary token to use is a contrast decision, not a taste one**, and on this background `--color-primary-ink` is the *lighter* tint, the reverse of what the name suggests to anyone who saw the previous cream palette. The ratios are in the `@theme` comment and in [design.md](design.md).
 
-**[design.md](design.md)** holds the visual decisions: palette with measured contrast ratios, the doodle system, typography roles, the annotation inventory, and the height/weight budgets. Adding an annotation means adding a row to its inventory table.
+**[design.md](design.md)** holds the visual decisions: palette with measured contrast ratios, the doodle system, typography roles, the annotation inventory, the height/weight budgets, and the background shader (§7 — its three colours, the scrim contract, the three levers on the contrast budget, and the procedure for re-measuring them). Adding an annotation means adding a row to its inventory table; touching a scrim alpha or the shader's brightness means re-running §7's measurement.

@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { meta } from '../data/profile';
 import Bilingual from '../components/Bilingual.astro';
+import SolarVeil from '../components/SolarVeil.astro';
 
 interface Props {
   title?: string;
@@ -68,8 +69,8 @@ const ogImage = new URL('/og.png', Astro.site ?? meta.url);
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#FAFAF8" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#120906" />
+    <meta name="color-scheme" content="dark" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
@@ -104,6 +105,7 @@ const ogImage = new URL('/og.png', Astro.site ?? meta.url);
   </head>
 
   <body>
+    <SolarVeil />
     <a class="skip-link" href="#work">
       <Bilingual es="Ir a los proyectos" en="Skip to work" />
     </a>

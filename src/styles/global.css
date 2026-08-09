@@ -50,26 +50,35 @@
 --------------------------------------------------------------------------- */
 
 @theme {
-  --color-bg: #fafaf8;
-  --color-surface: #f1f1ed;
-  --color-ink: #111110;
-  --color-muted: #63635e;
-  --color-faint: #9a9a94;
-  --color-line: rgb(17 17 16 / 0.1);
+  /* --color-bg is also the shader's darkest colour (uColorA in veil.ts), so
+     the static fallback and the first rendered frame start from one value. */
+  --color-bg: #120906;
+  /* Opaque, deliberately: every surface using it sits over a moving image, and
+     a translucent panel over that is unreadable. */
+  --color-surface: #1c110b;
+  --color-ink: #ffffff;
+  --color-muted: #b3aca4;
+  --color-faint: #9d958c;
+  --color-line: rgb(255 255 255 / 0.14);
 
-  /* The one non-neutral in the palette. Measured against --color-bg (#fafaf8):
-       --color-primary       3.60:1 — clears the 3:1 AA floor for non-text
-                                      graphics and for large text. Marks, rules
-                                      and display accents only.
-       --color-primary-ink   5.53:1 — clears 4.5:1. Any primary-coloured text
-                                      below ~24px must use this one.
+  /* The one non-neutral in the palette. The ratios below are measured against
+     the *worst case* the background can produce — the brightest frame of the
+     veil seen through the scrim — not against --color-bg, which is only what
+     shows where the beams do not reach. See design.md §7.
+       --color-primary       3.7:1 — clears the 3:1 AA floor for non-text
+                                     graphics and for large text. Marks, rules
+                                     and display accents only.
+       --color-primary-ink   5.5:1 — clears 4.5:1. Any primary-coloured text
+                                     below ~24px must use this one.
        --color-primary-wash          Backs a highlighted term; never a border,
-                                      it has no contrast to spare.
-     Picking the wrong one of the first two is the easiest accessibility
-     mistake to make here, which is why the numbers live in the file. */
+                                     it has no contrast to spare.
+     Note which way -ink runs. On the old cream background it was the *darker*
+     tint, because #e35342 could not reach 4.5:1 there. On this one the
+     relationship inverts and that same #b8392a falls to 3.4:1 — so -ink is now
+     the lighter tint, and reaching for the darker one is the easy mistake. */
   --color-primary: #e35342;
-  --color-primary-ink: #b8392a;
-  --color-primary-wash: rgb(227 83 66 / 0.16);
+  --color-primary-ink: #f2836f;
+  --color-primary-wash: rgb(227 83 66 / 0.28);
 
   --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
@@ -101,7 +110,15 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  /* What the page is actually laid out against. The canvas draws over this and
+     may legitimately never do so — no WebGL2, a lost context, a blocked
+     script — so the flat token alone would leave the page noticeably deader
+     than intended. The gradient is a crude still of the shader: one warm glow
+     low and to the left, where its light source sits. */
+  background:
+    radial-gradient(120% 90% at 8% 104%, #331409 0%, rgb(51 20 9 / 0) 62%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 0.9375rem;
@@ -144,6 +161,42 @@ a {
 ::selection {
   background: var(--color-ink);
   color: var(--color-bg);
+}
+
+/* Scrollbar — styled to match the palette rather than left at the browser
+   default, which would be the one grey element on an otherwise warm page.
+   Firefox gets the two-color shorthand; WebKit gets the full pseudo-element
+   set, since it ignores `scrollbar-color` entirely. */
+html {
+  scrollbar-color: var(--color-primary) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 999px;
+  /* A transparent border clipped to the background punches the thumb in from
+     the track on both sides, so it reads as a slim bar rather than a full-width
+     stripe against the page edge. */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary-ink);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 :focus-visible {
@@ -439,10 +492,71 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 /* ---------------------------------------------------------------------------
+   The veil — the animated background and the scrim that makes it survivable.
+
+   The canvas is enhancement: `veil.ts` may find no WebGL2, may lose its
+   context, may never run at all, and the page has to be no worse than the
+   static gradient on `body` when that happens.
+
+   The scrim is not enhancement. It is the thing every contrast ratio in the
+   `@theme` block is measured through, so it has to be present whether or not
+   the canvas ever paints — which is why it is a second element and not, say,
+   a filter on the first.
+--------------------------------------------------------------------------- */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  /* The two numbers that hold the contrast floor. Raising them dims the veil
+     and buys headroom; lowering them does the opposite and eventually breaks
+     small text over a beam. design.md §7 has the procedure that turns these
+     into measured ratios rather than guesses. */
+  --scrim: 0.82;
+  --scrim-column: 0.9;
+}
+
+.veil canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.veil-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-bg) calc(var(--scrim) * 100%), transparent);
+}
+
+/* Above 62rem the left column carries every piece of small text on the page —
+   bio, labels, the clock, the tool names — so it gets the heavier end of the
+   scrim, and the cards, which are mostly image, get to keep more of the veil.
+   Below that the layout is a single column and there is no left to favour. */
+@media (min-width: 62rem) {
+  .veil-scrim {
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-bg) calc(var(--scrim-column) * 100%), transparent) 0%,
+      color-mix(in srgb, var(--color-bg) calc(var(--scrim-column) * 100%), transparent) 24%,
+      color-mix(in srgb, var(--color-bg) calc(var(--scrim) * 100%), transparent) 48%,
+      color-mix(in srgb, var(--color-bg) calc(var(--scrim) * 100%), transparent) 100%
+    );
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Layout
 --------------------------------------------------------------------------- */
 
 .shell {
+  /* Lifts the page off the veil, and — the reason it is a stacking context and
+     not just a z-index — traps `.gloss .doodle`'s `z-index: -1` inside the
+     shell. Without it that mark would drop below the background entirely
+     instead of landing between the paragraph and the veil. */
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(3rem, 8vh, 5rem);
@@ -620,15 +734,29 @@ html[data-lang='es'] [data-i18n='en'] {
 .gloss-note {
   position: absolute;
   left: 0;
-  right: 0;
   top: calc(100% + 0.5rem);
-  z-index: 20;
+  /* Wider than the paragraph it anchors to — the pinned intro column runs as
+     narrow as 19rem, and a note clamped to that width wraps almost every
+     word onto its own line. Overlapping the content to its right is fine;
+     that is what a popover is for. Still capped so it never runs past the
+     viewport on a phone, where the column is full-width to begin with. */
+  width: max-content;
+  min-width: 14rem;
+  max-width: min(20rem, calc(100vw - 2 * var(--pad-x)));
+  /* High enough to clear every other stacking context on the page — cards
+     use isolation: isolate, .shell itself is one — without picking a number
+     so large it invites a game of leapfrog later. */
+  z-index: 999;
   padding: 0.5rem 0.625rem;
   border-radius: 8px;
-  background: var(--color-bg);
+  /* Surface rather than bg: the note is a panel lifted off a moving image, and
+     it has to read as sitting above the paragraph, not as a hole in it. The
+     drop shadow is near-black at heavy alpha for the same reason — the old
+     ink-at-0.09 was tuned to darken cream and is simply invisible here. */
+  background: var(--color-surface);
   box-shadow:
     inset 0 0 0 1px var(--color-line),
-    0 10px 24px rgb(17 17 16 / 0.09);
+    0 10px 24px rgb(0 0 0 / 0.5);
   color: var(--color-muted);
   font-size: 0.75rem;
   font-weight: 400;

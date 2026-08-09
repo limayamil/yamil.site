@@ -13,8 +13,9 @@ criterio visual.
 
 ## 1. Paleta
 
-Cinco neutros y un primario. La restricción es el punto: cuando el 95% de la
-página es gris, un solo color hace todo el trabajo de jerarquía sin subir la voz.
+Cinco neutros y un primario, sobre oscuro. La restricción es el punto: cuando el
+95% de la página es un neutro, un solo color hace todo el trabajo de jerarquía
+sin subir la voz.
 
 Todos viven en el bloque `@theme` de [global.css](src/styles/global.css) y
 Tailwind v4 genera las utilidades (`text-primary`, `bg-surface`, …) desde ahí.
@@ -23,25 +24,59 @@ Tailwind v4 genera las utilidades (`text-primary`, `bg-surface`, …) desde ahí
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-bg` | `#fafaf8` | Fondo. Blanco roto, cálido. |
-| `--color-surface` | `#f1f1ed` | Superficies elevadas. |
-| `--color-ink` | `#111110` | Texto principal. |
-| `--color-muted` | `#63635e` | Bio, copy secundario. |
-| `--color-faint` | `#9a9a94` | Labels, metadatos, estados inactivos. |
-| `--color-line` | `rgb(17 17 16 / 0.1)` | Hairlines. |
+| `--color-bg` | `#120906` | Fondo. Negro cálido. |
+| `--color-surface` | `#1c110b` | Superficies elevadas. **Opaco, no translúcido.** |
+| `--color-ink` | `#ffffff` | Texto principal. |
+| `--color-muted` | `#b3aca4` | Bio, copy secundario. |
+| `--color-faint` | `#9d958c` | Labels, metadatos, estados inactivos. |
+| `--color-line` | `rgb(255 255 255 / 0.14)` | Hairlines. |
+
+`--color-bg` no es un gris elegido a ojo: es el `uColorA` del shader del fondo
+(§7). Que el token y el punto más oscuro del veil sean el mismo valor es lo que
+hace que el fallback estático y el primer frame renderizado empalmen sin costura.
+
+`--color-surface` tiene que ser opaco porque todo lo que lo usa —`.card-media`,
+`.gloss-note`— está apoyado sobre una imagen en movimiento, y un panel
+semitransparente encima de eso no se lee.
+
+### Contra qué se miden estos números
+
+**No contra `--color-bg`.** El fondo es un shader animado, así que el peor caso
+no es el token: es el píxel más claro que el veil puede producir, visto a través
+del scrim. Ese es el fondo contra el que están medidas las relaciones de abajo, y
+el procedimiento para volver a medirlas está en §7.
+
+| Token | Columna intro | Zona de tarjetas | Piso que necesita |
+|---|---|---|---|
+| `--color-ink` | 17.0:1 | 14.5:1 | 4.5 ✓ |
+| `--color-muted` | 7.6:1 | 6.5:1 | 4.5 ✓ |
+| `--color-faint` | 5.7:1 | 4.9:1 | 4.5 ✓ |
+
+La columna sale mejor que las tarjetas porque el scrim es más pesado ahí a
+propósito: arriba de 62rem esa columna concentra todo el texto chico de la
+página, y las tarjetas —que son mayormente imagen— se quedan con más veil.
 
 ### Primario
 
-| Token | Valor | Contraste sobre `#fafaf8` | Dónde sí | Dónde no |
-|---|---|---|---|---|
-| `--color-primary` | `#e35342` | **3.60:1** | Trazos, reglas, subrayados, acentos ≥24px | Texto de cuerpo |
-| `--color-primary-ink` | `#b8392a` | **5.53:1** | Cualquier texto en primario bajo 24px | — |
-| `--color-primary-wash` | `rgb(227 83 66 / 0.16)` | n/a | Fondo del resaltador | Bordes, texto |
+| Token | Valor | Columna | Tarjetas | Dónde sí | Dónde no |
+|---|---|---|---|---|---|
+| `--color-primary` | `#e35342` | **4.5:1** | **3.9:1** | Trazos, reglas, subrayados, acentos ≥24px | Texto de cuerpo |
+| `--color-primary-ink` | `#f2836f` | **6.7:1** | **5.7:1** | Cualquier texto en primario bajo 24px | — |
+| `--color-primary-wash` | `rgb(227 83 66 / 0.28)` | n/a | n/a | Fondo del resaltador | Bordes, texto |
 
-**Este es el error fácil de cometer acá.** `#e35342` pasa el piso de 3:1 de
-WCAG AA para grafismo no textual y para texto grande, y **no llega** a los 4.5:1
-que pide el texto chico. Por eso hay dos tokens y no uno. La nota manuscrita
-(`.hand`) usa `--color-primary-ink` justamente por esto: son 17px.
+**Este es el error fácil de cometer acá, y cambió de forma.** Sigue habiendo dos
+tokens porque `#e35342` pasa el piso de 3:1 de WCAG AA para grafismo no textual
+y para texto grande, y no llega a los 4.5:1 del texto chico sobre las tarjetas.
+La nota manuscrita (`.hand`) usa `--color-primary-ink` justamente por eso: son
+17px.
+
+Lo que se dio vuelta es **hacia qué lado va `-ink`**. Sobre el crema anterior era
+el tinte *más oscuro* (`#b8392a`), porque contra un fondo claro oscurecer es lo
+que suma contraste. Sobre `#120906` ese mismo `#b8392a` cae a **3.4:1** y dejaría
+la nota manuscrita fallando — así que `-ink` es ahora el tinte *más claro*.
+Buscar el oscuro es el reflejo que hay que resistir.
+
+El wash también subió, de 0.16 a 0.28: sobre oscuro, 0.16 de alfa no se ve.
 
 Los números están también como comentario en el `@theme`, porque el lugar donde
 se comete el error es el lugar donde hay que leerlos.
@@ -50,7 +85,8 @@ se comete el error es el lugar donde hay que leerlos.
 
 `.dot` mantiene su `#2f9e5f` hardcodeado. No es un olvido: pintar de rojo-naranja
 el indicador de "disponible para proyectos" dice exactamente lo contrario de lo
-que el texto al lado dice. El verde ahí no es decoración, es semántica.
+que el texto al lado dice. El verde ahí no es decoración, es semántica. Sobre el
+fondo nuevo da 4.3:1 en el peor caso, de sobra para el 3:1 que pide un grafismo.
 
 ---
 
@@ -237,7 +273,7 @@ viewport en 992px de ancho, forzar sobre `.intro` la forma flex con
 | Markup de los 7 doodles en el HTML | 4.5KB (11% del `index.html`) |
 | `index.html` completo | 40.2KB → **13.5KB gzip** |
 | Caveat (no preloadeado, `swap`) | 47.7KB |
-| JS de runtime | Sin cambios — `motion.ts` y nada más |
+| JS de runtime | `motion.ts` + `veil.ts` (§7). Cero dependencias nuevas |
 
 El `d` de cada path se redondea a dos decimales en `doodles.ts`; rough emite ~17,
 que es un tercio del markup en precisión que ninguna pantalla resuelve.
@@ -245,3 +281,91 @@ que es un tercio del markup en precisión que ninguna pantalla resuelve.
 Si el markup de doodles llegara a molestar, la palanca es el `roughness` y la
 cantidad de pasadas, no el redondeo: `disableMultiStroke: true` corta un path a
 la mitad.
+
+---
+
+## 7. El fondo
+
+Rayos volumétricos saliendo de una fuente de luz que deriva fuera de cuadro,
+abajo a la izquierda. Es un fragment shader de WebGL2 en
+[src/scripts/veil.ts](src/scripts/veil.ts), montado por
+[SolarVeil.astro](src/components/SolarVeil.astro) sobre un canvas fijo a todo el
+viewport.
+
+Tres colores, y son los mismos que definen la paleta neutra:
+
+| Uniform | Valor | Rol |
+|---|---|---|
+| `uColorA` | `#120906` | La base. **Es `--color-bg`.** |
+| `uColorB` | `#c9471e` | El velo ambiente. |
+| `uColorC` | `#ffe0a8` | La punta de los haces. |
+
+### Sin dependencias, y por qué
+
+Llegó como componente React manejado con `ogl`. Las dos se descartaron por la
+misma regla que descartó `rough-notation` en §2: `veil.ts` habla WebGL2 crudo —
+un triángulo fullscreen derivado de `gl_VertexID`, sin buffers ni VAO.
+
+El shader además se podó. El original era un uber-shader de ~40 uniforms cuyo
+preset apagaba casi todos: sin dither, LED, pixelado, glitch, RGB split, pixel
+sort, posterizado, edge glow, duotono, scanlines, animación de UV ni textura de
+origen. Quedó **sólo el camino que ese preset ejecutaba de verdad**, copiado
+carácter por carácter: 17KB → 2.9KB. El original completo se conserva sin
+compilar en [docs/reference](docs/reference/).
+
+### El scrim es parte del contrato, el canvas no
+
+Es la distinción que sostiene toda la §1, y confundirlas es el error:
+
+- **El canvas es mejora progresiva.** Sin WebGL2, con el contexto perdido o con
+  el script bloqueado la página tiene que quedar igual de legible. Por eso `body`
+  lleva un gradiente estático que lo aproxima, y por eso `--color-bg` es el mismo
+  valor que `uColorA`.
+- **El scrim no lo es.** `.veil-scrim` es la capa a través de la cual están
+  medidas todas las relaciones de contraste, así que existe pinte o no pinte el
+  canvas. De ahí que sean dos elementos y no un filtro sobre uno.
+
+Arriba de 62rem el scrim es un degradado horizontal: más pesado sobre la columna
+intro, que concentra todo el texto chico, y más liviano sobre las tarjetas, que
+son mayormente imagen. Abajo de 62rem hay una sola columna y es parejo.
+
+### Las tres palancas
+
+Sólo estas tres mueven el presupuesto de contraste. Tocar una obliga a re-medir.
+
+| Palanca | Dónde | Valor |
+|---|---|---|
+| `--scrim` | `.veil` en `global.css` | `0.82` |
+| `--scrim-column` | `.veil` en `global.css` | `0.9` |
+| `brightness` | `VEIL` en `veil.ts` | `0.85` (el preset traía `1.0`) |
+
+### Cómo re-medir
+
+**No alcanza con mirarlo**: el fondo se mueve, y el frame que rompe el contraste
+puede tardar en aparecer. La fuente de luz tiene un ciclo de ~116s, así que un
+muestreo corto se lo pierde.
+
+El procedimiento, corriendo en la página:
+
+1. Compilar el mismo shader en un contexto WebGL2 aparte, con
+   `preserveDrawingBuffer`, a la relación de aspecto que se quiera evaluar.
+2. Barrer `uTime` de 0 a 130 en pasos de 0.5 y `readPixels` en cada paso.
+3. Componer cada píxel contra el alfa de scrim que le toca según su posición en
+   x, y quedarse con la **luminancia máxima** de todo el barrido, separando la
+   franja de la columna (x < 0.30) del resto.
+4. Calcular la relación de cada token contra ese peor caso.
+
+El piso: **4.5:1 para todo token de texto, 3:1 para todo grafismo.** Los
+resultados de la última corrida están en las tablas de §1.
+
+### Coste y contención
+
+`glow` a 0.68 dispara cuatro muestreos extra del generador, y cada muestreo corre
+`fbm` de 5 octavas dos veces: cinco pasadas caras por píxel. Eso es lo que fija
+las tres decisiones de contención en `veil.ts`, y ninguna es opcional:
+
+- **dpr topeado en 1.5** (el original usaba 2). El coste escala con el cuadrado.
+- **El loop se corta con `visibilitychange`.** El original seguía renderizando
+  aun "pausado" — sólo congelaba el reloj.
+- **`prefers-reduced-motion` dibuja un frame y para.** El original no contemplaba
+  la query. Vale la misma regla de §5: la imagen es el punto, el movimiento no.
