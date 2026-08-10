@@ -38,6 +38,19 @@ export interface Link {
   external?: boolean;
 }
 
+/** The current job, rendered as its own line under the bio. */
+export interface Experience {
+  /**
+   * The role, as one sentence per language. `{company}` is replaced by the link
+   * to `company` — one string per language rather than a before/after pair, so
+   * each language keeps its own word order.
+   */
+  line: Localized;
+  company: { name: string; href: string };
+  /** Link out to the full track record. */
+  cta: { label: Localized; href: string; external?: boolean };
+}
+
 export interface Profile {
   name: string;
   role: Localized;
@@ -47,7 +60,7 @@ export interface Profile {
    * gloss renders as an inline-block button and will not break across lines.
    */
   bio: Localized[];
-  available: { is: boolean; label: Localized };
+  experience: Experience;
   capabilities: Capability[];
   /** Shown until a capability is hovered. Ties the three together. */
   restingNote: Localized;
@@ -67,7 +80,7 @@ export interface Profile {
 }
 
 export const profile: Profile = {
-  name: 'Yamil Lues',
+  name: 'Yami hace cosas',
 
   role: {
     es: 'Diseño y automatizo operaciones entre marketing, producto y web',
@@ -85,11 +98,18 @@ export const profile: Profile = {
     },
   ],
 
-  available: {
-    is: true,
-    label: {
-      es: 'Disponible para proyectos seleccionados',
-      en: 'Available for select work',
+  experience: {
+    line: {
+      es: 'Actualmente trabajo en {company} como Technical Marketing Operations Lead.',
+      en: 'Currently at {company} as Technical Marketing Operations Lead.',
+    },
+    company: { name: 'Kinetic Corp', href: 'https://kinetic-corp.com' },
+    // TODO: point this at a proper experience page once it exists. LinkedIn is
+    // the stand-in — a real destination beats a dead `#`.
+    cta: {
+      label: { es: 'Conocé mi recorrido', en: 'See my track record' },
+      href: 'https://www.linkedin.com/in/yamillues/',
+      external: true,
     },
   },
 
@@ -126,9 +146,12 @@ export const profile: Profile = {
     },
   ],
 
+  // Sólo se ve con puntero: en touch el panel abre en el primer eje y esta
+  // ranura nunca aparece (ver `idle` en motion.ts). Por eso la copia puede
+  // hablar de mouse sin mentirle a nadie.
   restingNote: {
-    es: 'Tres oficios que en el papel no se llevan bien. En la práctica se cubren las espaldas.',
-    en: "Three trades that don't get along on paper. In practice they cover for each other.",
+    es: 'pasá el mouse por encima para conocer más',
+    en: 'hover over one to see more',
   },
 
   contactNote: {

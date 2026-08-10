@@ -2,7 +2,7 @@
  * The site's entire runtime. Small jobs, no framework:
  *
  *   1. reveal elements once as they enter the viewport
- *   2. play a card's loop on hover (pointer) or when centred (touch)
+ *   2. play a tile's loop on hover (pointer) or when centred (touch)
  *   3. keep the footer clock ticking
  *   4. fetch the footer's live weather reading once, on load
  *   5. drive the capability panel from whichever axis is hovered or focused
@@ -10,13 +10,72 @@
  *   7. run the ES/EN switch (the language is *resolved* by an inline script in
  *      Base.astro, which has to beat the first paint — this only reacts to
  *      clicks after that)
+ *   8. filter the bento grid by axis, re-packing it with a FLIP
+ *   9. route `#caso/<slug>` between the grid and one open case
  *
  * Nothing here reads layout during scroll, and every animated property is
- * transform/opacity, so the compositor handles the frames on its own.
+ * transform/opacity, so the compositor handles the frames on its own. The one
+ * place layout *is* read is the FLIP helper, which reads it twice in the same
+ * frame, on purpose, in response to a click — never during a scroll.
  */
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+/**
+ * FLIP. Measure, mutate, then play the difference back as a transform.
+ *
+ * `element.animate` rather than a class or a style write: the Web Animations
+ * API never touches the `style` attribute, so this respects the same rule the
+ * rest of the file follows — state is a `data-*` or a class, never an inline
+ * style left behind for someone to find later.
+ */
+function flip(nodes: HTMLElement[], mutate: () => void, duration = 520): void {
+  if (reducedMotion.matches) {
+    mutate();
+    return;
+  }
+
+  const first = new Map(nodes.map((node) => [node, node.getBoundingClientRect()]));
+  mutate();
+
+  for (const node of nodes) {
+    const a = first.get(node);
+    const b = node.getBoundingClientRect();
+    // Either rect can be empty — the node was `display: none` on one side of
+    // the mutation. Nothing to interpolate from, so let it just appear.
+    if (!a || !a.width || !a.height || !b.width || !b.height) continue;
+
+    const dx = a.left - b.left;
+    const dy = a.top - b.top;
+    const sx = a.width / b.width;
+    const sy = a.height / b.height;
+    if (!dx && !dy && sx === 1 && sy === 1) continue;
+
+    node.animate(
+      // `transform-origin: 0 0` is not optional: the offsets above are measured
+      // from the top-left corner, and the default centre origin would fold the
+      // scale back into the translate and land the node in the wrong place.
+      [
+        {
+          transformOrigin: '0 0',
+          transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`,
+        },
+        { transformOrigin: '0 0', transform: 'none' },
+      ],
+      { duration, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', composite: 'replace' },
+    );
+  }
+}
+
+/** Fade a node in place. Returns the animation so a caller can await it. */
+function fade(node: HTMLElement, from: number, to: number, duration = 160): Animation | null {
+  if (reducedMotion.matches) return null;
+  return node.animate([{ opacity: from }, { opacity: to }], {
+    duration,
+    easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+  });
+}
 
 /* -- 1. Scroll reveal ----------------------------------------------------- */
 
@@ -79,56 +138,59 @@ function initReveals(): void {
   sweep();
 }
 
-/* -- 2. Card video -------------------------------------------------------- */
+/* -- 2. Tile video -------------------------------------------------------- */
 
-function play(card: HTMLElement, video: HTMLVideoElement): void {
+function play(host: HTMLElement, video: HTMLVideoElement): void {
   if (reducedMotion.matches) return;
-  card.dataset.playing = 'true';
+  host.dataset.playing = 'true';
   // Autoplay can still be refused (low power mode, for one) — the poster
   // underneath stays visible, so there is nothing to recover from.
   void video.play().catch(() => {
-    card.dataset.playing = 'false';
+    host.dataset.playing = 'false';
   });
 }
 
-function stop(card: HTMLElement, video: HTMLVideoElement): void {
-  card.dataset.playing = 'false';
+function stop(host: HTMLElement, video: HTMLVideoElement): void {
+  host.dataset.playing = 'false';
   video.pause();
   video.currentTime = 0;
 }
 
 function initVideos(): void {
-  const cards = Array.from(document.querySelectorAll<HTMLElement>('.card')).filter(
-    (card): card is HTMLElement => card.querySelector('video') !== null,
+  // The anchor, not the tile: it is the focusable element, so `focus`/`blur`
+  // land on it directly rather than needing the bubbling variants.
+  const tiles = Array.from(document.querySelectorAll<HTMLElement>('.tile-link')).filter(
+    (tile): tile is HTMLElement => tile.querySelector('video') !== null,
   );
-  if (cards.length === 0) return;
+  if (tiles.length === 0) return;
 
   if (canHover.matches) {
-    for (const card of cards) {
-      const video = card.querySelector('video')!;
-      card.addEventListener('pointerenter', () => play(card, video));
-      card.addEventListener('pointerleave', () => stop(card, video));
-      card.addEventListener('focus', () => play(card, video));
-      card.addEventListener('blur', () => stop(card, video));
+    for (const tile of tiles) {
+      const video = tile.querySelector('video')!;
+      tile.addEventListener('pointerenter', () => play(tile, video));
+      tile.addEventListener('pointerleave', () => stop(tile, video));
+      tile.addEventListener('focus', () => play(tile, video));
+      tile.addEventListener('blur', () => stop(tile, video));
     }
     return;
   }
 
-  // Touch: whichever card is mostly on screen plays, the others rewind.
+  // Touch: whichever tile is mostly on screen plays, the others rewind. A tile
+  // hidden by the filter or by the case view has no box, so it stops on its own.
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        const card = entry.target as HTMLElement;
-        const video = card.querySelector('video');
+        const tile = entry.target as HTMLElement;
+        const video = tile.querySelector('video');
         if (!video) continue;
-        if (entry.isIntersecting) play(card, video);
-        else stop(card, video);
+        if (entry.isIntersecting) play(tile, video);
+        else stop(tile, video);
       }
     },
     { threshold: 0.6 },
   );
 
-  cards.forEach((card) => observer.observe(card));
+  tiles.forEach((tile) => observer.observe(tile));
 }
 
 /* -- 3. Local clock ------------------------------------------------------- */
@@ -231,15 +293,27 @@ function initAxes(): void {
   const slots = Array.from(root.querySelectorAll<HTMLElement>('[data-slot]'));
   if (buttons.length === 0 || slots.length === 0) return;
 
+  // The axes and the bento share one key — a capability's `icon` is a
+  // project's `axis` — so pointing at a discipline can dim the work that is not
+  // it, with no lookup table in between.
+  const bento = document.querySelector<HTMLElement>('[data-bento]');
+
   const show = (key: string) => {
     for (const slot of slots) slot.classList.toggle('is-active', slot.dataset.slot === key);
     for (const button of buttons) button.classList.toggle('is-active', button.dataset.axis === key);
+    // Pointer only. On touch the panel rests *on* an axis rather than on the
+    // resting note, so a highlight here would leave two thirds of the grid
+    // permanently dimmed with nothing hovering it.
+    if (bento && canHover.matches) {
+      if (key === 'rest') delete bento.dataset.highlight;
+      else bento.dataset.highlight = key;
+    }
   };
 
   // A pointer can leave, so it gets the resting copy back on the way out. Touch
   // cannot, so the first axis stays open and taps move between them — the panel
   // is never empty and never reverts under a finger.
-  const idle = canHover.matches ? 'rest' : '0';
+  const idle = canHover.matches ? 'rest' : (buttons[0]?.dataset.axis ?? 'rest');
   show(idle);
 
   for (const button of buttons) {
@@ -299,6 +373,13 @@ function initLang(): void {
     const title = root.getAttribute(`data-title-${lang}`);
     if (title) document.title = title;
 
+    // `alt` is the one string on the page CSS cannot switch: an attribute has
+    // no second copy to hide, and a duplicate <img> would still be fetched.
+    for (const image of document.querySelectorAll<HTMLImageElement>('img[data-alt-es]')) {
+      const alt = lang === 'en' ? image.dataset.altEn : image.dataset.altEs;
+      if (alt) image.alt = alt;
+    }
+
     for (const button of buttons) {
       button.setAttribute('aria-pressed', String(button.dataset.langSet === lang));
     }
@@ -322,6 +403,212 @@ function initLang(): void {
   }
 }
 
+/* -- 8. Bento filters ------------------------------------------------------ */
+
+function initFilters(): void {
+  const root = document.querySelector<HTMLElement>('[data-filters]');
+  const bento = document.querySelector<HTMLElement>('[data-bento]');
+  const empty = document.querySelector<HTMLElement>('[data-bento-empty]');
+  if (!root || !bento) return;
+
+  const buttons = Array.from(root.querySelectorAll<HTMLElement>('[data-filter-set]'));
+  const tiles = Array.from(bento.querySelectorAll<HTMLElement>('.tile'));
+  if (buttons.length === 0 || tiles.length === 0) return;
+
+  const matches = (tile: HTMLElement, key: string) => key === 'all' || tile.dataset.axis === key;
+
+  const apply = (key: string) => {
+    if (bento.dataset.filter === key) return;
+
+    for (const button of buttons) {
+      button.setAttribute('aria-pressed', String(button.dataset.filterSet === key));
+    }
+
+    const staying = tiles.filter((t) => matches(t, bento.dataset.filter ?? 'all') && matches(t, key));
+    const arriving = tiles.filter((t) => !matches(t, bento.dataset.filter ?? 'all') && matches(t, key));
+
+    // Only the survivors are FLIPped, and they never change size when the
+    // filter changes — so this is a pure translate and the copy inside them is
+    // never squashed. The ones coming and going just fade.
+    flip(staying, () => {
+      bento.dataset.filter = key;
+    });
+
+    for (const tile of arriving) fade(tile, 0, 1, 320);
+
+    if (empty) empty.hidden = staying.length + arriving.length > 0;
+  };
+
+  for (const button of buttons) {
+    const key = button.dataset.filterSet;
+    if (!key) continue;
+    button.addEventListener('click', () => apply(key));
+  }
+}
+
+/* -- 9. Case router -------------------------------------------------------- */
+
+/**
+ * `#caso/<slug>` is the whole router. Tiles are real anchors, so a click already
+ * changes the hash on its own and `hashchange` is the single entry point —
+ * which means the back button, a shared link and a ctrl-click all arrive
+ * through the same door. The click handler below does not call
+ * `preventDefault`; all it does is remember which tile was under the pointer,
+ * so the FLIP knows what rect to grow out of.
+ */
+function initCases(): void {
+  const work = document.querySelector<HTMLElement>('[data-work]');
+  const bento = document.querySelector<HTMLElement>('[data-bento]');
+  if (!work || !bento) return;
+
+  const cases = Array.from(work.querySelectorAll<HTMLElement>('[data-case]'));
+  if (cases.length === 0) return;
+
+  /** The tile a case should grow from, or fall back to on the way out. */
+  let origin: HTMLElement | null = null;
+  let openSlug: string | null = null;
+  let indexScroll = 0;
+
+  const tileFor = (slug: string) =>
+    bento.querySelector<HTMLElement>(`.tile[data-slug="${CSS.escape(slug)}"] .tile-link`);
+
+  const heroOf = (node: HTMLElement) => node.querySelector<HTMLElement>('[data-case-hero]');
+
+  /**
+   * Half a FLIP: the "first" rect is handed in, because the two elements
+   * involved never coexist — the tile is gone by the time the hero has a box,
+   * and vice versa. `first` is expected in post-scroll viewport coordinates.
+   */
+  const morph = (node: HTMLElement, first: DOMRect | null) => {
+    if (reducedMotion.matches || !first || !first.width || !first.height) return;
+    const last = node.getBoundingClientRect();
+    if (!last.width || !last.height) return;
+
+    node.animate(
+      [
+        {
+          transformOrigin: '0 0',
+          transform: `translate(${first.left - last.left}px, ${first.top - last.top}px) scale(${first.width / last.width}, ${first.height / last.height})`,
+        },
+        { transformOrigin: '0 0', transform: 'none' },
+      ],
+      { duration: 560, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    );
+  };
+
+  /**
+   * Scroll instantly and report how far, so a rect measured before the jump can
+   * be corrected for it. Smooth scrolling here would slide the page underneath
+   * the morph and pull it off its target — the jump is what keeps the two in
+   * the same coordinate space.
+   */
+  const jump = (top: number): number => {
+    const before = window.scrollY;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+    return window.scrollY - before;
+  };
+
+  const shift = (rect: DOMRect | null, delta: number) =>
+    rect ? new DOMRect(rect.left, rect.top - delta, rect.width, rect.height) : null;
+
+  const openCase = (slug: string) => {
+    const node = cases.find((c) => c.dataset.case === slug);
+    if (!node || openSlug === slug) return;
+
+    const switching = openSlug !== null;
+    if (!switching) indexScroll = window.scrollY;
+
+    const from = origin ?? tileFor(slug);
+    const first = from?.getBoundingClientRect() ?? null;
+    origin = null;
+
+    for (const other of cases) {
+      const wasOpen = !other.hidden;
+      other.hidden = other !== node;
+      if (wasOpen && other !== node) {
+        const video = heroOf(other)?.querySelector('video');
+        if (video) stop(heroOf(other)!, video);
+      }
+    }
+    work.dataset.view = 'case';
+    openSlug = slug;
+
+    // Only chase the header when it is actually off the top — a reader already
+    // near the top of the column does not need the page moved under them.
+    const workTop = work.getBoundingClientRect().top;
+    const delta = workTop < 0 ? jump(workTop + window.scrollY - 24) : 0;
+
+    const hero = heroOf(node);
+    if (hero) morph(hero, shift(first, delta));
+
+    node.querySelector<HTMLElement>('[data-case-back]')?.focus({ preventScroll: true });
+
+    const video = hero?.querySelector('video');
+    if (hero && video) play(hero, video);
+  };
+
+  const closeCase = () => {
+    if (openSlug === null) return;
+
+    const slug = openSlug;
+    const node = cases.find((c) => c.dataset.case === slug);
+    const hero = node ? heroOf(node) : null;
+    const first = hero?.getBoundingClientRect() ?? null;
+
+    const video = hero?.querySelector('video');
+    if (hero && video) stop(hero, video);
+
+    for (const other of cases) other.hidden = true;
+    work.dataset.view = 'index';
+    openSlug = null;
+
+    // A tile that has spent its whole life inside a `display: none` grid — the
+    // case was deep-linked, so the index never rendered — has no box for the
+    // reveal observer to intersect, and does not reliably get one on the way
+    // back. Resolve them by hand rather than trusting that. The stagger is a
+    // per-tile `transition-delay`, so they still arrive as a wave.
+    for (const pending of bento.querySelectorAll<HTMLElement>('[data-reveal]:not(.is-visible)')) {
+      pending.classList.add('is-visible');
+    }
+
+    const delta = jump(indexScroll);
+
+    const target = tileFor(slug);
+    if (target) {
+      morph(target, shift(first, delta));
+      target.focus({ preventScroll: true });
+    }
+  };
+
+  const route = () => {
+    const match = /^#caso\/(.+)$/.exec(window.location.hash);
+    const slug = match ? decodeURIComponent(match[1]) : null;
+    if (slug && cases.some((c) => c.dataset.case === slug)) openCase(slug);
+    else closeCase();
+  };
+
+  // Remember the tile; do not intercept the navigation. The anchor changes the
+  // hash on its own, which is what keeps ctrl-click and middle-click working.
+  bento.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest<HTMLElement>('.tile-link');
+    if (link) origin = link;
+  });
+
+  // Push rather than `history.back()`: guessing whether the entry behind us is
+  // our own index is unreliable once prev/next have been used, and wrong there
+  // means leaving the site. Pushing always lands on the index, and the
+  // browser's own back button still returns to the case.
+  document.addEventListener('click', (event) => {
+    if (!(event.target as Element | null)?.closest('[data-case-back]')) return;
+    history.pushState(null, '', window.location.pathname + window.location.search);
+    route();
+  });
+
+  window.addEventListener('hashchange', route);
+
+  route();
+}
+
 /* -- boot ----------------------------------------------------------------- */
 
 initReveals();
@@ -331,3 +618,5 @@ void initWeather();
 initAxes();
 initGlosses();
 initLang();
+initFilters();
+initCases();

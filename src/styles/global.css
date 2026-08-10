@@ -217,6 +217,25 @@ html {
   text-wrap: pretty;
 }
 
+/* The measure of the two prose blocks in the intro column (bio, experience).
+   38ch is the comfortable reading width, and it is what the single-column
+   layout gets. Above 62rem it is raised to 62ch, which is a height decision
+   rather than a typographic one: the pinned column has to fit one viewport,
+   and every line the copy does *not* wrap to is 23px of budget back. At a
+   1920-wide viewport the column is 576px and the cap binds at ~458px, so the
+   copy still stops short of the column's own edge. Below 62ch the bio wraps a
+   line further and the intro no longer fits a 1080p viewport — see the sticky
+   release thresholds under Layout. */
+.col-prose {
+  max-width: 38ch;
+}
+
+@media (min-width: 62rem) {
+  .col-prose {
+    max-width: 62ch;
+  }
+}
+
 /* Small caps-ish metadata label used for section headers and tags. */
 .label {
   font-size: 0.6875rem;
@@ -584,7 +603,11 @@ html[data-lang='es'] [data-i18n='en'] {
     flex-direction: column;
     justify-content: space-between;
     gap: 2.5rem;
-    padding-block: clamp(2.5rem, 8vh, 4.5rem);
+    /* 6vh, not 8vh: above ~1200px of viewport both clamp to the same 4.5rem,
+       so this only ever gives back space on the short viewports that are
+       fighting for it — ~32px on a 1080p screen, which is the difference
+       between pinning and not. */
+    padding-block: clamp(2.5rem, 6vh, 4.5rem);
   }
 }
 
@@ -593,22 +616,48 @@ html[data-lang='es'] [data-i18n='en'] {
    no way to scroll to them — sticky never releases — so let the column scroll
    with the page instead.
 
-   65.75rem is measured, not chosen: at the narrowest the column gets (304px, at
-   exactly 62rem of viewport) the intro needs 1050px in either language, and
-   1052px leaves two for sub-pixel rounding — so sticky may only engage from
-   1053px up. Adding a row to the intro means re-measuring this number: force
-   the flex/`height: auto` shape at a 992px viewport and read the flow height in
-   both languages.
+   The release height is tiered by *width* because the intro's height is a
+   function of the column's width: the column is `max(19rem, 30vw)`, so a wider
+   screen wraps the copy to fewer lines and needs less vertical room. One
+   threshold across all widths would have to be the narrowest column's reading
+   (~67rem), which is what used to keep a 1920x1080 screen — where the intro
+   fits in 866px — from ever pinning.
 
-   It was 61rem (976px), which was already ~74px short of that same 1050px:
-   between 977px and 1050px tall the column pinned and quietly clipped its own
-   footer. The contact note costs nothing here — it rides in the links row
-   rather than taking one of its own — so the corrected number is the number
-   this column always needed. */
-@media (min-width: 62rem) and (max-height: 65.75rem) {
+   Every number is measured, not chosen: force the flex/`height: auto` shape at
+   the *narrowest* viewport in each tier, read the flow height in both languages
+   (they differ by a line or two), take the taller, and solve for the viewport
+   height that fits it once padding is 6vh of that same height:
+   H = (content excluding padding) / 0.88, rounded up to the next 0.5rem.
+
+     tier          narrowest   column   flow height    release below
+     62–90rem      992px       304px    1085px         67rem   (1072px)
+     90–120rem     1440px      432px     951px         57.5rem (920px)
+     ≥120rem       1920px      576px     905px         54.5rem (872px)
+
+   (Flow heights above are at 4.5rem padding; the thresholds account for the
+   padding shrinking to 6vh at those heights.)
+
+   Adding a row to the intro means re-running all three. The thresholds are a
+   reading, not a lever — trimming the intro, or widening `.col-prose`, is what
+   actually buys pinning back. */
+@media (min-width: 62rem) and (max-height: 67rem) {
   .intro {
     position: static;
     height: auto;
+  }
+}
+
+@media (min-width: 90rem) and (min-height: 57.5rem) {
+  .intro {
+    position: sticky;
+    height: 100svh;
+  }
+}
+
+@media (min-width: 120rem) and (min-height: 54.5rem) {
+  .intro {
+    position: sticky;
+    height: 100svh;
   }
 }
 
@@ -675,6 +724,61 @@ html[data-lang='es'] [data-i18n='en'] {
 
 .link:hover .arrow {
   transform: translate3d(2px, -2px, 0);
+}
+
+/* An inline link that is also the emphasis of its sentence — the employer in
+   the experience line. Three signals at once, and each does a different job:
+   the colour says "this is the noun that matters", the rule says "this is a
+   link" before any hover happens, and the marker swipe says someone went over
+   it by hand.
+
+   `-ink`, not `-primary`: this is body-sized text, so it needs the 5.5:1 tint.
+   The rule underneath is a graphic and can hold the fuller colour, and swapping
+   the two on hover brightens the mark without ever dropping the text below
+   4.5:1 — same trade `.gloss` makes with its dotted rule.
+
+   `inline-flex` for the same reason `.gloss` is `inline-block`: the swipe is
+   absolutely positioned and needs one unfragmented box to size against. The
+   cost is that the name cannot break across lines — keep it to two short
+   words, or the narrow column will push it past the right edge. */
+.link-em {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  color: var(--color-primary-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-primary);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.22em;
+  transition:
+    color 0.35s var(--ease-io),
+    text-decoration-color 0.35s var(--ease-io);
+}
+
+.link-em:hover,
+.link-em:focus-visible {
+  text-decoration-color: var(--color-primary-ink);
+}
+
+.link-em .arrow {
+  transition: transform 0.45s var(--ease-out);
+}
+
+.link-em:hover .arrow {
+  transform: translate3d(2px, -2px, 0);
+}
+
+/* Same construction as `.gloss .doodle`, and for the same reason: under the
+   word rather than over it, in the wash rather than the solid, so the text
+   keeps its contrast against the page instead of against the mark. */
+.link-em .doodle {
+  z-index: -1;
+  top: 0;
+  left: -0.26em;
+  width: calc(100% + 0.52em);
+  height: 100%;
+  color: var(--color-primary-wash);
 }
 
 /* ---------------------------------------------------------------------------
@@ -780,7 +884,7 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 /* ---------------------------------------------------------------------------
-   Capability axes — three rows over one shared, fixed-height panel.
+   Capability axes — three chips over one shared, fixed-height panel.
 
    Every slot is stacked in the same absolutely-positioned box, so moving
    between disciplines cross-fades in place. Nothing here can change the
@@ -808,6 +912,61 @@ html[data-lang='es'] [data-i18n='en'] {
 .axis:focus-visible,
 .axis.is-active {
   color: var(--color-ink);
+}
+
+/* The three disciplines sit inline, not one per row: three short labels do not
+   each need the full column, and wrapping them frees vertical height in a
+   column that is pinned to one viewport. Scoped to `.axes` on purpose —
+   `.axis-link` below the bio keeps the full-width row shape it borrowed. */
+.axes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.axes .axis {
+  /* Hugs its own content instead of stretching: `1fr` on the title is what made
+     every row the width of the column. */
+  grid-template-columns: auto auto;
+  gap: 0.4375rem;
+  width: auto;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  transition:
+    color 0.35s var(--ease-io),
+    border-color 0.35s var(--ease-io),
+    background-color 0.35s var(--ease-io);
+}
+
+/* The chevron is what told a full-width row it could be opened. A chip says
+   that with its own outline, and the 15px the cue reserves is the difference
+   between two chips sharing a line and three stacking at the column's
+   narrowest (19rem). */
+.axes .axis-cue {
+  display: none;
+}
+
+.axes .axis-title {
+  font-size: 0.8125rem;
+}
+
+.axes .axis:hover,
+.axes .axis:focus-visible,
+.axes .axis.is-active {
+  border-color: color-mix(in srgb, var(--color-ink) 32%, transparent);
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+
+/* Inside a chip the row-shift reads as the label sliding off its own border, so
+   the chip stays put and only the cue moves. */
+.axes .axis:hover .axis-icon,
+.axes .axis:focus-visible .axis-icon,
+.axes .axis.is-active .axis-icon,
+.axes .axis:hover .axis-title,
+.axes .axis:focus-visible .axis-title,
+.axes .axis.is-active .axis-title {
+  transform: none;
 }
 
 .axis-icon {
@@ -849,6 +1008,18 @@ html[data-lang='es'] [data-i18n='en'] {
 .axis.is-active .axis-cue {
   opacity: 1;
   transform: none;
+}
+
+/* The experience link, wearing an axis row's clothes. It borrows the whole
+   shape — icon, title, cue, the rule underneath — because the affordance is
+   the same one: a row in this column that opens something.
+
+   What it does not borrow is the behaviour. There is no `data-axis` on it, so
+   `motion.ts` never sees it, no panel slot answers to it, and it never goes
+   `.is-active`. It navigates instead, which is why its cue is the diagonal
+   that marks a link leaving the page rather than the chevron the axes use. */
+.axis-link {
+  margin-top: 0.375rem;
 }
 
 .axis-panel {
@@ -895,9 +1066,29 @@ html[data-lang='es'] [data-i18n='en'] {
 
 .axis-rest {
   justify-content: center;
-  color: var(--color-faint);
-  font-size: 0.8125rem;
   text-wrap: pretty;
+}
+
+/* The hint that the list answers to a pointer. Indented by the width of its own
+   arrow so the mark has a lane of its own — the arrow is absolute and costs no
+   flow height, so nothing else in the panel moves for it. `max-content` capped
+   at the column keeps the two lines ragged rather than justified to the box. */
+.axis-hint {
+  position: relative;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  padding-left: 2.5rem;
+}
+
+/* Reaches up out of the panel and into the gap under the axis list. Drawn
+   larger than the note it belongs to, because it has ~1.5rem of dead space to
+   cross before it gets anywhere near what it is pointing at. */
+.axis-hint .doodle {
+  bottom: 0.6em;
+  left: 0.15rem;
+  width: 2.1rem;
+  height: 3.5rem;
 }
 
 .axis-kicker {
@@ -953,51 +1144,237 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 /* ---------------------------------------------------------------------------
-   Project cards
+   The work column — two views, one URL
+
+   `.projects` holds both states of the right-hand column: the bento index and
+   the open case. Both are in the HTML at once and `data-view` picks one, the
+   same trick `html[data-lang]` plays with the two languages. Nothing is
+   fetched and nothing is templated at runtime.
 --------------------------------------------------------------------------- */
 
 .projects {
   display: flex;
   flex-direction: column;
-  gap: clamp(3.5rem, 8vh, 6rem);
+  gap: clamp(1.5rem, 3.5vh, 2.25rem);
   /* Stacked layout: the shell gap already separates the two blocks. */
   padding-block: 0 clamp(4rem, 12vh, 8rem);
 }
 
 @media (min-width: 62rem) {
   .projects {
-    /* Match the intro's top padding so the first card's edge lines up with
-       the name it sits beside. */
+    /* Match the intro's top padding so the filter row lines up with the name
+       it sits beside — the alignment contract the first card used to hold. */
     padding-block: clamp(2.5rem, 8vh, 4.5rem) clamp(6rem, 20vh, 12rem);
   }
 }
 
-.card {
-  display: block;
+.projects[data-view='case'] .filters,
+.projects[data-view='case'] .bento,
+.projects[data-view='case'] .bento-empty {
+  display: none;
 }
 
-.card-media {
+/* ---------------------------------------------------------------------------
+   Filters — the axes, seen from the work side
+
+   The three pills are built from `profile.capabilities`, so this row and the
+   "En qué soy bueno" list in the left column cannot drift apart: a project's
+   `axis` is the same key as a capability's `icon`. Pressed state is
+   `aria-pressed` and nothing else, the same as `.lang-option` — one attribute
+   for both the look and the announcement, so they can never disagree.
+--------------------------------------------------------------------------- */
+
+.filters ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  padding: 0.5rem 0.875rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.04);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    color 0.3s var(--ease-io),
+    background-color 0.3s var(--ease-io),
+    transform 0.4s var(--ease-out);
+}
+
+.filter:hover,
+.filter:focus-visible {
+  color: var(--color-ink);
+  transform: translate3d(0, -1px, 0);
+}
+
+/* Dark ink on the light tint, not the reverse: this is the one place on the
+   page where the primary is a background, so the text on it has to flip. */
+.filter[aria-pressed='true'] {
+  background: var(--color-primary-ink);
+  box-shadow: none;
+  color: var(--color-bg);
+}
+
+.filter-icon {
+  flex: none;
+}
+
+.filter-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.6875rem;
+  opacity: 0.6;
+}
+
+/* ---------------------------------------------------------------------------
+   Bento grid
+
+   Three tiers, and the size *is* the claim: a primary spans the full width and
+   two rows, a secondary covers two cells either way up, a tertiary covers one.
+   `grid-auto-flow: dense` is what keeps it from reading as a staircase — a
+   vertical tile dropped after a horizontal one backfills the hole instead of
+   leaving it. The trade is that dense decouples visual order from DOM order,
+   so `order` in projects.json should stay close to the reading order; dense
+   only fills gaps, it does not shuffle.
+
+   The media is the *background* here, not a block above the copy, which moves
+   the contrast burden off `.veil-scrim` and onto `.tile-media::after`. That
+   scrim is load-bearing for the same reason the page's is: design.md §1 has
+   the card zone as the weaker half of the page, and now there is text sitting
+   directly on artwork whose brightness we do not control.
+--------------------------------------------------------------------------- */
+
+.bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(0.625rem, 1.2vw, 1rem);
+}
+
+/* One column: spans mean nothing, so each tier states its own proportion
+   instead. Set through a custom property so the wider layouts can drop the
+   ratio with a single same-specificity rule. */
+.tile {
+  aspect-ratio: var(--tile-ratio, 16 / 11);
+}
+
+.tile[data-tier='primary'] {
+  --tile-ratio: 5 / 4;
+}
+
+.tile[data-tier='secondary'][data-shape='vertical'] {
+  --tile-ratio: 4 / 5;
+}
+
+@media (min-width: 34rem) {
+  .bento {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: clamp(9rem, 21vw, 13rem);
+    grid-auto-flow: dense;
+  }
+
+  .tile {
+    aspect-ratio: auto;
+  }
+
+  .tile[data-tier='primary'] {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  .tile[data-tier='secondary'][data-shape='horizontal'] {
+    grid-column: span 2;
+  }
+
+  .tile[data-tier='secondary'][data-shape='vertical'] {
+    grid-row: span 2;
+  }
+}
+
+@media (min-width: 62rem) {
+  .bento {
+    grid-template-columns: repeat(3, 1fr);
+    /* A tertiary tile is one row tall and carries axis + title + deck, which is
+       ~105px of copy. Below about 10rem the scrim behind that copy swallows the
+       whole cell and the artwork stops reading at all. */
+    grid-auto-rows: clamp(10rem, 14vw, 13.5rem);
+  }
+
+  .tile[data-tier='primary'] {
+    grid-column: span 3;
+  }
+}
+
+/* The filter. One attribute on the container governs the whole grid, and
+   `display: none` is what makes the remaining tiles re-pack — the movement of
+   that re-pack is FLIPped in `motion.ts`, not transitioned here. */
+.bento[data-filter='engineering'] .tile:not([data-axis='engineering']),
+.bento[data-filter='motion'] .tile:not([data-axis='motion']),
+.bento[data-filter='ops'] .tile:not([data-axis='ops']) {
+  display: none;
+}
+
+.bento-empty {
+  color: var(--color-faint);
+}
+
+.bento-empty[hidden] {
+  display: none;
+}
+
+.tile {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--color-surface);
-  aspect-ratio: 16 / 10;
   isolation: isolate;
+  /* Rides the `[data-reveal]` transition declared in the motion primitives —
+     the grid arrives as a wave rather than all at once. */
+  transition-delay: calc(var(--i, 0) * 45ms);
 }
 
-/* Hairline instead of a border so the radius stays crisp at any DPR. */
-.card-media::before {
+/* Hairline instead of a border so the radius stays crisp at any DPR. Lives on
+   the tile rather than the media because the media is now a child of the link
+   and would clip it. */
+.tile::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 2;
   border-radius: inherit;
   box-shadow: inset 0 0 0 1px var(--color-line);
   pointer-events: none;
 }
 
-.card-media img,
-.card-media video {
+.tile-link {
+  --tile-pad: clamp(0.875rem, 1.6vw, 1.375rem);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  /* Named, because `.tile-body`'s scrim has to bleed back out by exactly this
+     much to reach the tile's edges. */
+  padding: var(--tile-pad);
+  transition: opacity 0.4s var(--ease-io);
+}
+
+.tile-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.tile-media img,
+.tile-media video {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1006,36 +1383,49 @@ html[data-lang='es'] [data-i18n='en'] {
   transition: transform 0.7s var(--ease-out);
 }
 
-.card-media video {
-  z-index: 2;
+.tile-media video {
+  z-index: 1;
   opacity: 0;
   transition:
     opacity 0.4s var(--ease-io),
     transform 0.7s var(--ease-out);
 }
 
-.card:hover .card-media img,
-.card:hover .card-media video,
-.card:focus-visible .card-media img,
-.card:focus-visible .card-media video {
-  transform: scale(1.03);
-}
-
-.card[data-playing='true'] .card-media video {
+.tile-link[data-playing='true'] .tile-media video {
   opacity: 1;
 }
 
-/* Placeholder-only cards get a sheen sweep on hover so the motion gesture is
-   visible before any real footage exists. Pure transform — no repaint. */
-.card-media[data-placeholder]::after {
+/* A soft overall veil, and this half *is* taste: it settles bright artwork
+   into the page and gives the cue badge something to sit on. The contrast
+   budget does not lean on it. */
+.tile-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    to top,
+    rgb(18 9 6 / 0.45) 0%,
+    rgb(18 9 6 / 0.14) 55%,
+    rgb(18 9 6 / 0.06) 100%
+  );
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-io);
+}
+
+/* Placeholder-only tiles get a sheen sweep on hover so the motion gesture is
+   visible before any real footage exists. Pure transform — no repaint. It sits
+   above the scrim but is still trapped inside `.tile-media`'s stacking
+   context, so it can never wash over the copy. */
+.tile-media[data-placeholder]::before {
   content: '';
   position: absolute;
   inset: -20% -60%;
-  z-index: 2;
+  z-index: 3;
   background: linear-gradient(
     100deg,
     transparent 38%,
-    rgb(255 255 255 / 0.34) 50%,
+    rgb(255 255 255 / 0.2) 50%,
     transparent 62%
   );
   transform: translate3d(-60%, 0, 0);
@@ -1044,8 +1434,8 @@ html[data-lang='es'] [data-i18n='en'] {
   transition: opacity 0.3s var(--ease-io);
 }
 
-.card:hover .card-media[data-placeholder]::after,
-.card:focus-visible .card-media[data-placeholder]::after {
+.tile-link:hover .tile-media[data-placeholder]::before,
+.tile-link:focus-visible .tile-media[data-placeholder]::before {
   opacity: 1;
   animation: sheen 1.5s var(--ease-io) infinite;
 }
@@ -1059,46 +1449,437 @@ html[data-lang='es'] [data-i18n='en'] {
   }
 }
 
-.card-meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin-top: 1.125rem;
+.tile-link:hover .tile-media img,
+.tile-link:hover .tile-media video,
+.tile-link:focus-visible .tile-media img,
+.tile-link:focus-visible .tile-media video {
+  transform: scale(1.05);
 }
 
-.card-title {
-  font-size: 1.0625rem;
+.tile-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+}
+
+/* The load-bearing scrim, and the reason it hangs off the copy instead of off
+   the tile: a tile is a fixed cell but the copy in it is not, so any gradient
+   expressed as a share of the tile is a guess that a wrapped title breaks. A
+   tertiary tile turned out to be three quarters text — the percentage version
+   left the axis line at 1.9:1 over a white frame.
+
+   Pinned to `.tile-body` the geometry is exact at any tile height and any copy
+   length: the hold covers the copy and the padding under it, and the fade is
+   exactly the 3.5em of bleed above it, so the ramp always starts where the
+   text stops. `em`, so it scales with the type rather than with the layout.
+
+   The alpha is measured, not chosen. `--color-primary-ink` binds it: at
+   L = 0.362 it needs a backdrop at L ≤ 0.042 to clear 4.5:1, and pushing white
+   artwork that far down takes α ≥ 0.82. At 0.93 the worst case lands at
+   L = 0.012 — 6.7:1 for the axis line, 7.6:1 for the deck. See design.md §8. */
+.tile-body::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset-block: -3.5em calc(-1 * var(--tile-pad));
+  inset-inline: calc(-1 * var(--tile-pad));
+  background: linear-gradient(
+    to top,
+    rgb(18 9 6 / 0.93) 0%,
+    rgb(18 9 6 / 0.93) calc(100% - 3.5em),
+    rgb(18 9 6 / 0) 100%
+  );
+  pointer-events: none;
+}
+
+/* `--color-primary-ink`, never `--color-primary`: this is text under 24px and
+   the plain primary only reaches 3.9:1 in the card zone (design.md §1). */
+.tile-axis {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-primary-ink);
+}
+
+.tile-year {
+  color: var(--color-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-year::before {
+  content: '·';
+  margin-right: 0.5rem;
+}
+
+.tile-title {
+  font-size: 1rem;
   font-weight: 500;
   letter-spacing: -0.018em;
+  line-height: 1.25;
+  text-wrap: balance;
   transition: transform 0.5s var(--ease-out);
 }
 
-.card:hover .card-title,
-.card:focus-visible .card-title {
+.tile[data-tier='secondary'] .tile-title {
+  font-size: 1.125rem;
+}
+
+.tile[data-tier='primary'] .tile-title {
+  font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+  letter-spacing: -0.024em;
+}
+
+.tile-link:hover .tile-title,
+.tile-link:focus-visible .tile-title {
   transform: translate3d(3px, 0, 0);
 }
 
-.card-roles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem 0.5rem;
-  margin-top: 0.4375rem;
+/* The row height is fixed, so the deck is clamped rather than allowed to push
+   the tile out of its cell. Anything past the clamp is still in the HTML and
+   still on the case page — this is a view, not a truncation of the record. */
+.tile-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.tile[data-tier='secondary'] .tile-summary {
   font-size: 0.8125rem;
 }
 
-.card-roles li + li::before {
+.tile[data-tier='primary'] .tile-summary {
+  -webkit-line-clamp: 3;
+  max-width: 48ch;
+  font-size: 0.875rem;
+}
+
+.tile-cue {
+  position: absolute;
+  top: clamp(0.875rem, 1.6vw, 1.375rem);
+  right: clamp(0.875rem, 1.6vw, 1.375rem);
+  z-index: 1;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0.5rem;
+  border-radius: 999px;
+  /* Dark, not a white wash: the badge sits high on the tile where the scrim
+     has already let go, so over bright artwork a translucent white backing
+     would take the mark with it. This keeps it at 4.2:1 against a white
+     frame — past the 3:1 floor a graphic has to clear. */
+  background: rgb(18 9 6 / 0.55);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-ink);
+  opacity: 0;
+  transform: translate3d(-5px, 0, 0);
+  transition:
+    opacity 0.4s var(--ease-io),
+    transform 0.5s var(--ease-out);
+}
+
+.tile-link:hover .tile-cue,
+.tile-link:focus-visible .tile-cue {
+  opacity: 1;
+  transform: none;
+}
+
+/* No hover to reveal it with, so it just stays out. */
+@media (hover: none) {
+  .tile-cue {
+    opacity: 0.75;
+    transform: none;
+  }
+}
+
+/* Hovering a capability on the left dims the work that does not belong to it.
+   The two columns share one key (`icon` / `axis`), which is the only reason
+   this is four lines instead of a lookup table. */
+.bento[data-highlight='engineering'] .tile:not([data-axis='engineering']) .tile-link,
+.bento[data-highlight='motion'] .tile:not([data-axis='motion']) .tile-link,
+.bento[data-highlight='ops'] .tile:not([data-axis='ops']) .tile-link {
+  opacity: 0.32;
+}
+
+/* ---------------------------------------------------------------------------
+   Case detail — the second view of the same column
+
+   Closed cases carry the `hidden` attribute rather than a class, so they are
+   out of the accessibility tree and so `#caso/slug` degrades to "nothing
+   happens" with JS off instead of to half a page.
+--------------------------------------------------------------------------- */
+
+.case {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 3.5vh, 2.5rem);
+  max-width: 60rem;
+}
+
+.case[hidden] {
+  display: none;
+}
+
+/* Same stagger as `.enter`, but held back so the copy lands after the hero has
+   finished growing out of its tile. Restarts on its own every time the case
+   goes from `display: none` back to shown. */
+.case-enter {
+  opacity: 0;
+  animation: enter 0.7s var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms + 180ms);
+}
+
+.case-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: color 0.3s var(--ease-io);
+}
+
+.case-back svg {
+  transition: transform 0.4s var(--ease-out);
+}
+
+.case-back:hover,
+.case-back:focus-visible {
+  color: var(--color-ink);
+}
+
+.case-back:hover svg,
+.case-back:focus-visible svg {
+  transform: translate3d(-3px, 0, 0);
+}
+
+.case-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 46ch;
+}
+
+.case-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: var(--color-primary-ink);
+}
+
+.case-kicker span + span::before {
   content: '·';
   margin-right: 0.5rem;
   color: var(--color-faint);
 }
 
-.card-year {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8125rem;
+.case-title {
+  font-size: clamp(1.75rem, 4vw, 2.625rem);
+  font-weight: 500;
+  letter-spacing: -0.028em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.case-lead {
+  color: var(--color-muted);
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  line-height: 1.5;
+}
+
+.case-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.5rem;
   color: var(--color-faint);
-  flex: none;
+  font-size: 0.8125rem;
+}
+
+.case-roles li + li::before {
+  content: '·';
+  margin-right: 0.5rem;
+}
+
+.case-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--color-surface);
+  aspect-ratio: 16 / 9;
+  isolation: isolate;
+}
+
+.case-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  pointer-events: none;
+}
+
+.case-hero img,
+.case-hero video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.case-hero video {
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-io);
+}
+
+.case-hero[data-playing='true'] video {
+  opacity: 1;
+}
+
+.case-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2.5rem;
+}
+
+.case-metric-value {
+  display: block;
+  font-size: clamp(1.375rem, 2.6vw, 1.75rem);
+  font-weight: 500;
+  letter-spacing: -0.024em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-ink);
+}
+
+.case-metric-label {
+  display: block;
+  margin-top: 0.125rem;
+}
+
+.case-body {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+@media (min-width: 48rem) {
+  .case-body {
+    grid-template-columns: minmax(0, 2fr) minmax(11rem, 1fr);
+    align-items: start;
+  }
+}
+
+.case-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.case-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  max-width: 62ch;
+}
+
+.case-heading {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.014em;
+}
+
+.case-section p {
+  color: var(--color-muted);
+}
+
+.case-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.case-facts dd {
+  margin: 0;
+  margin-top: 0.1875rem;
+  font-size: 0.8125rem;
+}
+
+/* One column until there is room for two — a half-width shot in a 327px column
+   is 155px wide, which is a thumbnail, not a picture. */
+.case-gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(0.625rem, 1.2vw, 1rem);
+}
+
+@media (min-width: 34rem) {
+  .case-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.case-shot-wide {
+  grid-column: 1 / -1;
+}
+
+.case-shot img {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.case-caption {
+  margin-top: 0.5rem;
+  color: var(--color-faint);
+  font-size: 0.75rem;
+}
+
+.case-link {
+  align-self: flex-start;
+}
+
+.case-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.case-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 20ch;
+  color: var(--color-muted);
+  transition: color 0.3s var(--ease-io);
+}
+
+.case-step-next {
+  margin-left: auto;
+  text-align: right;
+}
+
+.case-step:hover,
+.case-step:focus-visible {
+  color: var(--color-ink);
+}
+
+.case-step-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.014em;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1116,19 +1897,36 @@ html[data-lang='es'] [data-i18n='en'] {
   }
 
   .enter,
-  [data-reveal] {
+  [data-reveal],
+  .case-enter {
     opacity: 1;
     transform: none;
   }
 
-  .card:hover .card-media img,
-  .card:hover .card-media video,
-  .card:hover .card-title {
+  .tile-link:hover .tile-media img,
+  .tile-link:hover .tile-media video,
+  .tile-link:hover .tile-title,
+  .tile-link:hover .tile-cue,
+  .filter:hover,
+  .case-back:hover svg {
     transform: none;
   }
 
-  .card-media[data-placeholder]::after {
+  /* The cue is an affordance, not decoration — it arrives, it just doesn't
+     travel. The sheen is decoration, so it goes. */
+  .tile-link:hover .tile-cue,
+  .tile-link:focus-visible .tile-cue {
+    opacity: 1;
+  }
+
+  .tile-media[data-placeholder]::before {
     display: none;
+  }
+
+  /* The reveal wave is the only thing the stagger buys, and it is exactly the
+     kind of travel this query exists to stop. */
+  .tile {
+    transition-delay: 0ms;
   }
 
   /* The axes and the glosses still switch — they carry meaning, not decoration

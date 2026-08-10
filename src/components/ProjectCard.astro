@@ -1,28 +1,49 @@
 ---
+/**
+ * One tile in the bento grid.
+ *
+ * The whole tile is a single `<a>` — nothing else inside it is interactive, so
+ * the axis line and the chevron are spans, not controls. That anchor is also
+ * the router: its `href` is the case's hash, so a plain click changes the URL
+ * and `motion.ts` reacts to `hashchange`. Nothing here calls `preventDefault`,
+ * which is why ctrl-click and middle-click still open a real new tab.
+ *
+ * Unlike the old stacked card, the media is the *background*: it is absolutely
+ * positioned and the copy sits on top of it. That makes the scrim inside
+ * `.tile-media` load-bearing rather than decorative — see the Bento section of
+ * global.css.
+ */
 import type { CollectionEntry } from 'astro:content';
+import { profile } from '../data/profile';
+import Bilingual from './Bilingual.astro';
 
 interface Props {
   project: CollectionEntry<'projects'>['data'];
+  slug: string;
   index: number;
 }
 
-const { project, index } = Astro.props;
-const { title, client, year, roles, poster, video, href } = project;
+const { project, slug, index } = Astro.props;
+const { title, summary, axis, tier, shape, year, poster, video } = project;
 
-const isExternal = Boolean(href && /^https?:\/\//.test(href));
-const label = `${title}${client ? ` — ${client}` : ''}, ${year}`;
-// Above-the-fold cards load eagerly; the rest wait for the scroll.
-const eager = index < 2;
+// The discipline goes by its English name in both languages, same as the axis
+// rows in the left column.
+const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? axis;
+// The first row of the grid is above the fold on most viewports.
+const eager = index < 3;
 ---
 
-<article data-reveal>
-  <a
-    class="card group"
-    href={href ?? '#'}
-    aria-label={label}
-    {...isExternal ? { target: '_blank', rel: 'noreferrer noopener' } : {}}
-  >
-    <div class="card-media" {...video ? {} : { 'data-placeholder': '' }}>
+<article
+  class="tile"
+  data-reveal
+  data-tier={tier}
+  data-shape={shape}
+  data-axis={axis}
+  data-slug={slug}
+  style={`--i:${index}`}
+>
+  <a class="tile-link" href={`#caso/${slug}`}>
+    <div class="tile-media" {...video ? {} : { 'data-placeholder': '' }}>
       <img
         src={poster}
         alt=""
@@ -48,14 +69,32 @@ const eager = index < 2;
       }
     </div>
 
-    <div class="card-meta">
-      <div>
-        <h3 class="card-title">{title}</h3>
-        <ul class="card-roles">
-          {roles.map((role) => <li>{role}</li>)}
-        </ul>
-      </div>
-      <span class="card-year">{year}</span>
+    <div class="tile-body">
+      <p class="label tile-axis">
+        <span>{axisTitle}</span>
+        <span class="tile-year">{year}</span>
+      </p>
+      <h3 class="tile-title"><Bilingual es={title.es} en={title.en} /></h3>
+      <p class="tile-summary prose-tight">
+        <Bilingual es={summary.es} en={summary.en} />
+      </p>
     </div>
+
+    {/* Same chevron as `.axis-cue` — the site's one "there is more here" mark. */}
+    <svg
+      class="tile-cue"
+      width="8"
+      height="8"
+      viewBox="0 0 8 8"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M2.75 1.25 5.75 4 2.75 6.75"
+        stroke="currentColor"
+        stroke-width="1.1"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
   </a>
 </article>

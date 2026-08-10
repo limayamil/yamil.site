@@ -1,5 +1,6 @@
 ---
 import { profile } from '../data/profile';
+import ExternalArrow from './ExternalArrow.astro';
 ---
 
 <ul class="flex flex-wrap gap-x-5 gap-y-2">
@@ -12,24 +13,7 @@ import { profile } from '../data/profile';
           {...(link.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
         >
           {link.label}
-          {link.external && (
-            <svg
-              class="arrow"
-              width="8"
-              height="8"
-              viewBox="0 0 8 8"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M1.5 6.5 6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5"
-                stroke="currentColor"
-                stroke-width="1.1"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          )}
+          {link.external && <ExternalArrow />}
         </a>
       </li>
     ))

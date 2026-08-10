@@ -1,17 +1,54 @@
 ---
+/**
+ * The right-hand column, which has two states and one URL.
+ *
+ *   index  — the filter row plus the bento grid
+ *   case   — one project's detail, opened in place
+ *
+ * Both are in the HTML at once and `motion.ts` swaps `data-view` between them,
+ * driven by the `#caso/<slug>` hash. No routing, no fetch, no client-side
+ * template: the grid and all nine cases are rendered at build time, and the
+ * whole interaction is an attribute plus a `hidden` flag.
+ */
 import { getCollection } from 'astro:content';
+import Bilingual from './Bilingual.astro';
 import ProjectCard from './ProjectCard.astro';
+import ProjectDetail from './ProjectDetail.astro';
+import ProjectFilters from './ProjectFilters.astro';
 
 const projects = (await getCollection('projects'))
   .filter((entry) => entry.data.featured)
   .sort((a, b) => a.data.order - b.data.order);
 ---
 
-<main id="work" class="projects">
-  <h2 class="label sr-only">Selected work</h2>
+<main id="work" class="projects" data-work data-view="index">
+  <h2 class="label sr-only">
+    <Bilingual es="Trabajos seleccionados" en="Selected work" />
+  </h2>
+
+  <ProjectFilters projects={projects} />
+
+  <div class="bento" data-bento data-filter="all">
+    {
+      projects.map((entry, index) => (
+        <ProjectCard project={entry.data} slug={entry.id} index={index} />
+      ))
+    }
+  </div>
+
+  {/* Nothing matched the active filter. CSS decides when this shows. */}
+  <p class="bento-empty" data-bento-empty hidden>
+    <Bilingual es="Nada por acá todavía." en="Nothing here yet." />
+  </p>
+
   {
     projects.map((entry, index) => (
-      <ProjectCard project={entry.data} index={index} />
+      <ProjectDetail
+        project={entry.data}
+        slug={entry.id}
+        prev={projects[index - 1]}
+        next={projects[index + 1]}
+      />
     ))
   }
 </main>

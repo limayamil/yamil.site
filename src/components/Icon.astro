@@ -1,14 +1,17 @@
 ---
 /**
- * The three capability glyphs, drawn by hand rather than pulled from a library
- * — a dependency for three shapes would break the "no framework, one script"
- * posture the rest of the site keeps.
+ * The capability glyphs, drawn by hand rather than pulled from a library — a
+ * dependency for four shapes would break the "no framework, one script" posture
+ * the rest of the site keeps.
  *
- * Same drawing rules as the external-link arrow in `Links.astro`: no fill,
- * `currentColor` stroke, hairline weight, round caps and joins.
+ * Same drawing rules as the external-link arrow in `ExternalArrow.astro`: no
+ * fill, `currentColor` stroke, hairline weight, round caps and joins.
+ *
+ * Three of these name a discipline. `track` is the odd one out: it labels the
+ * experience link, which is built to look like an axis row without being one.
  */
 interface Props {
-  name: 'engineering' | 'motion' | 'ops';
+  name: 'engineering' | 'motion' | 'ops' | 'track';
   class?: string;
 }
 
@@ -45,6 +48,19 @@ const { name, class: className } = Astro.props;
         <path d="M2.5 8 4.6 5.9 6.7 8 4.6 10.1z" />
         <path d="M9.3 8 11.4 5.9 13.5 8 11.4 10.1z" />
         <path d="M6.7 8h2.6" />
+      </Fragment>
+    )
+  }
+
+  {/* A sheet with a folded corner and two ruled lines: the record itself. Read
+      at 16px it has to survive as an outline, which is why the fold is its own
+      stroke rather than a notch cut out of the page. */}
+  {
+    name === 'track' && (
+      <Fragment>
+        <path d="M4.4 2.6h4.7l3 3v7.9a.9.9 0 0 1-.9.9H4.4a.9.9 0 0 1-.9-.9V3.5a.9.9 0 0 1 .9-.9z" />
+        <path d="M9.1 2.6v3h3" />
+        <path d="M5.8 9h4.4M5.8 11.3h2.9" />
       </Fragment>
     )
   }

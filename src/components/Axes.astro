@@ -2,6 +2,7 @@
 import { profile } from '../data/profile';
 import { toolIcons } from '../lib/tool-icons';
 import Bilingual from './Bilingual.astro';
+import Doodle from './Doodle.astro';
 import Icon from './Icon.astro';
 import ToolIcon from './ToolIcon.astro';
 
@@ -28,9 +29,9 @@ const toolNames = (tools: string[]) => tools.map((tool) => toolIcons[tool]?.titl
   <div class="axes" data-axes>
     <ul>
       {
-        profile.capabilities.map((capability, index) => (
+        profile.capabilities.map((capability) => (
           <li>
-            <button type="button" class="axis" data-axis={String(index)}>
+            <button type="button" class="axis" data-axis={capability.icon}>
               <Icon name={capability.icon} class="axis-icon" />
               <span class="axis-title">{capability.title}</span>
               <svg
@@ -63,14 +64,20 @@ const toolNames = (tools: string[]) => tools.map((tool) => toolIcons[tool]?.titl
     </ul>
 
     <div class="axis-panel" aria-hidden="true">
-      {/* Default slot. Stays put with JS off, and is what a pointer returns to. */}
+      {/* Default slot. Stays put with JS off, and is what a pointer returns to.
+          It is an instruction rather than a line of copy, so it is set in the
+          same hand as the other margin notes and carries an arrow back up at
+          the list it is talking about. */}
       <p class="axis-slot axis-rest is-active" data-slot="rest">
-        <Bilingual es={profile.restingNote.es} en={profile.restingNote.en} />
+        <span class="axis-hint hand">
+          <Doodle name="arrowUp" class="doodle-enter" />
+          <Bilingual es={profile.restingNote.es} en={profile.restingNote.en} />
+        </span>
       </p>
 
       {
-        profile.capabilities.map((capability, index) => (
-          <div class="axis-slot" data-slot={String(index)}>
+        profile.capabilities.map((capability) => (
+          <div class="axis-slot" data-slot={capability.icon}>
             <p class="label axis-kicker">
               <Bilingual es={capability.tag.es} en={capability.tag.en} />
             </p>

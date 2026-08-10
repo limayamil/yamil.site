@@ -4,6 +4,8 @@ import { parseGloss } from '../lib/gloss';
 import Axes from './Axes.astro';
 import Bilingual from './Bilingual.astro';
 import Doodle from './Doodle.astro';
+import ExternalArrow from './ExternalArrow.astro';
+import Icon from './Icon.astro';
 import LangToggle from './LangToggle.astro';
 import Links from './Links.astro';
 
@@ -29,6 +31,16 @@ const highlighted = Object.fromEntries(
     return [lang, null];
   }),
 ) as Record<(typeof languages)[number], string | null>;
+
+/**
+ * The experience line splits around its `{company}` token, so the company link
+ * lands mid-sentence in whatever position each language puts it. Split at build
+ * time — the halves are plain text nodes, never `set:html`.
+ */
+const { line, company, cta } = profile.experience;
+const experienceParts = Object.fromEntries(
+  languages.map((lang) => [lang, line[lang].split('{company}')]),
+) as Record<(typeof languages)[number], string[]>;
 
 // Rendered at build time so the slot is never empty; motion.ts replaces it
 // with the visitor-accurate value on load and keeps it ticking.
@@ -75,7 +87,7 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
 
     {/* Each language gets its own copy of the bio: the marked-up terms differ
         per language, so `Bilingual` (which takes plain strings) can't do it. */}
-    <div class="bio enter max-w-[38ch] text-muted" style="--i:3">
+    <div class="bio col-prose enter text-muted" style="--i:3">
       {
         languages.map((lang) => (
           <div lang={lang} data-i18n={lang} class="flex flex-col gap-3.5">
@@ -101,17 +113,40 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
       }
     </div>
 
-    {
-      profile.available.is && (
-        <p class="enter flex items-center gap-2.5 text-[0.8125rem]" style="--i:4">
-          <span class="dot" />
-          <Bilingual es={profile.available.label.es} en={profile.available.label.en} />
-        </p>
-      )
-    }
+    {/* Where, under what the work is. Not a `bio` paragraph: those run through
+        `parseGloss`, which only ever emits text — it has no notion of a link. */}
+    <div class="col-prose enter flex flex-col gap-1 text-muted" style="--i:4">
+      {
+        languages.map((lang) => (
+          <p lang={lang} data-i18n={lang} class="prose-tight">
+            {experienceParts[lang][0]}
+            <a class="link-em" href={company.href} target="_blank" rel="noreferrer noopener">
+              {company.name}
+              <ExternalArrow />
+              <Doodle name="highlight" class="doodle-enter doodle-wipe" />
+            </a>
+            {experienceParts[lang][1]}
+          </p>
+        ))
+      }
+
+      {/* Shaped like an axis row, and deliberately not one: it carries no
+          `data-axis`, so `motion.ts` never picks it up and it drives no panel
+          slot. The borrowed shape is the point — it reads as another thing in
+          the column you can open. */}
+      <a
+        class="axis axis-link"
+        href={cta.href}
+        {...(cta.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+      >
+        <Icon name="track" class="axis-icon" />
+        <span class="axis-title"><Bilingual es={cta.label.es} en={cta.label.en} /></span>
+        <ExternalArrow class="axis-cue" />
+      </a>
+    </div>
   </div>
 
-  <div class="enter mt-12 flex flex-col gap-8 lg:mt-0" style="--i:5">
+  <div class="enter mt-12 flex flex-col gap-8 lg:mt-0" style="--i:6">
     <Axes />
 
     <div class="flex flex-col gap-3">

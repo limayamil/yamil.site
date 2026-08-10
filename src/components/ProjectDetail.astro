@@ -1,0 +1,199 @@
+---
+/**
+ * The case view — the second state of the right-hand column.
+ *
+ * Every case is rendered server-side and ships hidden inside the page. There is
+ * no fetch and no client-side template: `motion.ts` only flips the `hidden`
+ * attribute. `hidden` rather than a class, deliberately, so a closed case is
+ * out of the accessibility tree, and so `#caso/slug` degrades to "nothing
+ * happens" instead of "half a page" when JS is off.
+ *
+ * `.case-hero` is the FLIP target: it is the element that grows out of the
+ * rect of whichever tile was clicked.
+ */
+import type { CollectionEntry } from 'astro:content';
+import { profile } from '../data/profile';
+import Bilingual from './Bilingual.astro';
+
+interface Props {
+  project: CollectionEntry<'projects'>['data'];
+  slug: string;
+  prev?: CollectionEntry<'projects'>;
+  next?: CollectionEntry<'projects'>;
+}
+
+const { project, slug, prev, next } = Astro.props;
+const { title, axis, client, year, roles, poster, video, detail } = project;
+
+const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? axis;
+---
+
+<article class="case" data-case={slug} hidden>
+  <button type="button" class="case-back case-enter" style="--i:0" data-case-back>
+    <svg width="14" height="14" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+      <path
+        d="M5.25 1.25 2.25 4l3 2.75"
+        stroke="currentColor"
+        stroke-width="1.1"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+    <Bilingual es="Volver a los trabajos" en="Back to work" />
+  </button>
+
+  <header class="case-head case-enter" style="--i:1">
+    <p class="label case-kicker">
+      <span>{axisTitle}</span>
+      <span>{year}</span>
+      {client && <span>{client}</span>}
+    </p>
+    <h2 class="case-title display"><Bilingual es={title.es} en={title.en} /></h2>
+    <p class="case-lead prose-tight">
+      <Bilingual es={detail.lead.es} en={detail.lead.en} />
+    </p>
+    <ul class="case-roles">
+      {
+        roles.map((role) => (
+          <li>
+            <Bilingual es={role.es} en={role.en} />
+          </li>
+        ))
+      }
+    </ul>
+  </header>
+
+  <div class="case-hero" data-case-hero {...video ? {} : { 'data-placeholder': '' }}>
+    <img src={poster} alt="" width="1600" height="1000" loading="lazy" decoding="async" />
+    {
+      video && (
+        <video src={video} poster={poster} muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" />
+      )
+    }
+  </div>
+
+  {
+    detail.metrics.length > 0 && (
+      <ul class="case-metrics case-enter" style="--i:2">
+        {detail.metrics.map((metric) => (
+          <li>
+            <span class="case-metric-value">{metric.value}</span>
+            <span class="label case-metric-label">
+              <Bilingual es={metric.label.es} en={metric.label.en} />
+            </span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <div class="case-body case-enter" style="--i:3">
+    {
+      detail.sections.length > 0 && (
+        <div class="case-sections">
+          {detail.sections.map((section) => (
+            <section class="case-section">
+              <h3 class="case-heading">
+                <Bilingual es={section.heading.es} en={section.heading.en} />
+              </h3>
+              {section.body.map((paragraph) => (
+                <p class="prose-tight">
+                  <Bilingual es={paragraph.es} en={paragraph.en} />
+                </p>
+              ))}
+            </section>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      detail.facts.length > 0 && (
+        <dl class="case-facts">
+          {detail.facts.map((fact) => (
+            <div>
+              <dt class="label">
+                <Bilingual es={fact.label.es} en={fact.label.en} />
+              </dt>
+              <dd>
+                <Bilingual es={fact.value.es} en={fact.value.en} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+  </div>
+
+  {
+    detail.gallery.length > 0 && (
+      <div class="case-gallery case-enter" style="--i:4">
+        {detail.gallery.map((shot) => (
+          <figure class:list={['case-shot', shot.wide && 'case-shot-wide']}>
+            {/* `alt` cannot hold two languages the way `Bilingual` does, and a
+                second hidden <img> would still be fetched. So it ships in the
+                served language and `initLang` swaps it — the one attribute on
+                the page that JS translates. */}
+            <img
+              src={shot.src}
+              alt={shot.alt.es}
+              data-alt-es={shot.alt.es}
+              data-alt-en={shot.alt.en}
+              width="1600"
+              height="1000"
+              loading="lazy"
+              decoding="async"
+            />
+            {shot.caption && (
+              <figcaption class="case-caption">
+                <Bilingual es={shot.caption.es} en={shot.caption.en} />
+              </figcaption>
+            )}
+          </figure>
+        ))}
+      </div>
+    )
+  }
+
+  {
+    detail.link && (
+      <a
+        class="link case-link case-enter"
+        style="--i:5"
+        href={detail.link.href}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        <Bilingual es={detail.link.label.es} en={detail.link.label.en} />
+      </a>
+    )
+  }
+
+  <nav class="case-nav case-enter" style="--i:6">
+    {
+      prev ? (
+        <a class="case-step" href={`#caso/${prev.id}`} rel="prev">
+          <span class="label">
+            <Bilingual es="Anterior" en="Previous" />
+          </span>
+          <span class="case-step-title">
+            <Bilingual es={prev.data.title.es} en={prev.data.title.en} />
+          </span>
+        </a>
+      ) : (
+        <span />
+      )
+    }
+    {
+      next && (
+        <a class="case-step case-step-next" href={`#caso/${next.id}`} rel="next">
+          <span class="label">
+            <Bilingual es="Siguiente" en="Next" />
+          </span>
+          <span class="case-step-title">
+            <Bilingual es={next.data.title.es} en={next.data.title.en} />
+          </span>
+        </a>
+      )
+    }
+  </nav>
+</article>

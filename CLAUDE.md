@@ -19,9 +19,22 @@ This is a single-page Astro portfolio site (no client-side framework — Tailwin
 
 **Data-driven content.** The page is assembled from two data sources, not hardcoded markup:
 - [src/data/profile.ts](src/data/profile.ts) — name, role, bio, capabilities, contact links, location/timezone. Typed against exported interfaces (`Profile`, `Capability`, `Localized`) rather than inferred from `as const`. Consumed by [Intro.astro](src/components/Intro.astro), [Axes.astro](src/components/Axes.astro) and [Links.astro](src/components/Links.astro).
-- [src/data/projects.json](src/data/projects.json) — project entries, loaded as an Astro content collection via `file()` loader and validated against the Zod schema in [src/content.config.ts](src/content.config.ts). Consumed by [ProjectList.astro](src/components/ProjectList.astro) (filters `featured`, sorts by `order`) and rendered per-item by [ProjectCard.astro](src/components/ProjectCard.astro).
+- [src/data/projects.json](src/data/projects.json) — project entries, loaded as an Astro content collection via `file()` loader and validated against the Zod schema in [src/content.config.ts](src/content.config.ts). Consumed by [ProjectList.astro](src/components/ProjectList.astro) (filters `featured`, sorts by `order`), rendered as a grid tile by [ProjectCard.astro](src/components/ProjectCard.astro) and as a case page by [ProjectDetail.astro](src/components/ProjectDetail.astro). Every visible string is a `{ es, en }` pair, same as `profile.ts`; JSON takes no comments, so the field-by-field reasoning lives in the schema.
+
+Three fields in a project are enums, and a typo in any of them **fails the build** — the same posture as an unknown `toolIcons` key:
+- `axis` — `engineering | motion | ops`. This is the same key as a capability's `icon` in `profile.ts`, and that shared key is the whole join: the filter row is built from `profile.capabilities`, and hovering an axis on the left dims the work on the right that is not it. Renaming one without the other silently empties a filter.
+- `tier` — `primary | secondary | tertiary`. Size in the bento, and the only signal of importance the design has.
+- `shape` — `horizontal | vertical`, read only when `tier` is `secondary`.
 
 `profile.ts` now holds real content; `projects.json` is still placeholders. Swapping either is expected to be safe without touching layout code — subject to the copy budget below.
+
+**The right column is a bento grid with two views and one URL.** `.projects` holds both the index (filter row + grid) and all nine cases at once; `data-view` picks one, the same trick `html[data-lang]` plays with the two languages. `#caso/<slug>` is the entire router — tiles are real anchors, so a click changes the hash on its own and `hashchange` is the single entry point, which is what makes the back button, a shared link and a ctrl-click all arrive through the same door. Closed cases carry `hidden` (the attribute, not a class) so they stay out of the accessibility tree and so `#caso/slug` degrades to "nothing happens" with JS off.
+
+Two things about it are measured, not chosen, and **both are in [design.md §8](design.md)**:
+- **The tile's copy scrim hangs off the copy, not off the tile** (`.tile-body::before`). A tile is a fixed cell but the copy in it is not, so a gradient expressed as a share of the tile is a guess that a two-line title breaks — the first version left a tertiary tile's axis line at 1.9:1 over a white frame. Pinned to `.tile-body`, the opaque run covers the copy plus its padding and the ramp starts exactly where the text stops, at any tile height. Its α (0.93) is what puts `--color-primary-ink` back over 4.5:1 against the brightest artwork possible; moving it means re-running §8's measurement.
+- **The nine projects pack the three-column grid exactly** — 27 cells, 9 rows, no holes. Adding or removing one means redoing that arithmetic or accepting a ragged tail.
+
+Small text on a tile uses `--color-primary-ink`, never `--color-primary`: the plain primary only reaches 3.9:1 in the card zone.
 
 **Page structure:** [index.astro](src/pages/index.astro) → [Base.astro](src/layouts/Base.astro) (head/meta/fonts/scripts) wraps `Intro` + `ProjectList`.
 
@@ -46,14 +59,20 @@ A `tools` entry in `profile.ts` is a **key into `toolIcons`**, not a display nam
 - [src/scripts/motion.ts](src/scripts/motion.ts) — everything else. Its header comment enumerates the jobs; keep that list in sync when adding one:
 
 1. Scroll-reveal elements tagged `[data-reveal]` via `IntersectionObserver`, with a scroll-based sweep as a fallback for elements that never cross a frame boundary (e.g. restored scroll position).
-2. Play/pause project-card videos on hover (pointer devices) or on-screen-centered (touch), via `canHover` media query branching.
+2. Play/pause tile videos on hover (pointer devices) or on-screen-centered (touch), via `canHover` media query branching.
 3. Keep the footer's local clock ticking, aligned to the minute boundary rather than a naive `setInterval`.
 4. Fetch the footer's live weather reading once, on load.
-5. Drive the capability panel from whichever axis is hovered or focused.
+5. Drive the capability panel from whichever axis is hovered or focused — and, on pointer devices only, dim the bento tiles that do not share its axis.
 6. Open a bio gloss on tap, where there is no hover to open it.
-7. React to ES/EN toggle clicks (resolution happens in the head script, above).
+7. React to ES/EN toggle clicks (resolution happens in the head script, above), including swapping gallery `alt` text — the one string on the page CSS cannot switch, since an attribute has no second copy to hide.
+8. Filter the bento by axis, re-packing the grid with a FLIP.
+9. Route `#caso/<slug>` between the grid and one open case.
 
-State is always expressed as a `data-*` attribute or a class that CSS reacts to — never inline styles. Every animated property driven by `motion.ts` is transform/opacity only, so the compositor handles frames without layout reads during scroll. `<noscript>` in `Base.astro` force-shows everything if JS is unavailable.
+State is always expressed as a `data-*` attribute or a class that CSS reacts to — never inline styles. The FLIP helpers hold that line by using `element.animate` (the Web Animations API never touches the `style` attribute) rather than writing transforms and cleaning up after themselves. Every animated property driven by `motion.ts` is transform/opacity only, so the compositor handles frames without layout reads during scroll; the FLIPs are the one place layout *is* read, twice in the same frame, in response to a click — never during a scroll. `<noscript>` in `Base.astro` force-shows everything if JS is unavailable.
+
+Two non-obvious details in the case router, both of which were bugs first:
+- **Closing a case force-reveals any tile still pending.** A tile whose grid has been `display: none` since load — the case was deep-linked, so the index never rendered — has no box for the reveal observer to intersect and does not reliably get one on the way back. It would stay at `opacity: 0` for good. The stagger is a per-tile `transition-delay`, so resolving them all at once still arrives as a wave.
+- **"Volver" pushes rather than calling `history.back()`.** Guessing whether the entry behind us is our own index stops being reliable once the prev/next links have been used, and guessing wrong there means leaving the site. Pushing always lands on the index, and the browser's own back button still returns to the case.
 
 **The background is a shader, and the scrim over it is load-bearing.** [SolarVeil.astro](src/components/SolarVeil.astro) mounts a fixed, full-viewport canvas plus a `.veil-scrim` overlay; the shell above it is lifted out of the way with `position: relative; z-index: 1`, which also traps `.gloss .doodle`'s `z-index: -1` inside the shell instead of letting it fall behind the page.
 
@@ -65,7 +84,7 @@ The shader carries no dependency. It arrived as a React component driven by `ogl
 
 **The intro column has a hard height budget.** `.intro` is `position: sticky; height: 100svh` above 62rem, so anything added to it must fit one viewport. Two mechanisms hold that line, and both are measured numbers, not guesses:
 - `.axis-panel` has a fixed `min-height` and stacks all its slots absolutely, so switching disciplines cannot move the column. Copy that outgrows the box is clipped. Budget: one sentence per `line`, and enough `tools` to stay on one row (seven marks fit a 19rem column). The box gets a taller `min-height` below 62rem, where the tool names are visible and the column is no longer pinned.
-- The `@media (min-width: 62rem) and (max-height: 65.75rem)` escape hatch releases sticky when the viewport is too short for the content. **Adding a row to the intro means re-measuring the column in both languages at the narrowest it gets (~19rem) and updating that number.** Currently measured at 1050px; see design.md §6 for how to re-measure it.
+- The escape hatch that releases sticky when the viewport is too short is **tiered by width**, because the column is `max(19rem, 30vw)` and a wider screen wraps the copy to fewer lines: released below 67rem of height above 62rem wide, below 57.5rem above 90rem wide, below 54.5rem above 120rem wide. **Adding a row to the intro means re-measuring all three** in both languages, at the narrowest viewport in each tier; see design.md §6 for the procedure. The two levers that bought the pinning back on a 1080p screen are `.col-prose` (38ch, raised to 62ch above 62rem — a height decision, not a typographic one) and the column's `padding-block`, at `6vh` so it only gives back space on short viewports.
 - Doodles are exempt: they are absolutely positioned and cost zero flow height, which is the whole reason annotations are drawn rather than laid out.
 
 **Fonts are self-hosted**, not pulled from `@fontsource` at runtime: the woff2 files are copied out of `node_modules/@fontsource*` into `public/fonts/` and referenced by hand in [src/styles/global.css](src/styles/global.css) `@font-face` rules. After bumping the `@fontsource-variable/inter-tight`, `@fontsource/instrument-serif` or `@fontsource/caveat` versions, re-copy the woff2 files manually (see comment at top of `global.css`). Caveat is deliberately not preloaded — it only sets margin notes.

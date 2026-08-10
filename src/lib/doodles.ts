@@ -120,6 +120,34 @@ const arrowLeft = (): Doodle => ({
 });
 
 /**
+ * Points from the resting note in the capability panel up at the three axis
+ * buttons above it — the hint that says the list answers to a pointer.
+ *
+ * Same three-drawable construction as `arrowLeft`, in the same order (shaft,
+ * then the two head strokes), so the dash reveal arrives at the point last.
+ * Drawn with real horizontal drift rather than straight up: the note sits
+ * under the middle of the panel and the list starts to its left, so a plumb
+ * arrow would point at the gap between them.
+ */
+const arrowUp = (): Doodle => ({
+  viewBox: '0 0 30 46',
+  stretch: false,
+  paths: toPaths(
+    gen.curve(
+      [
+        [23, 42],
+        [17, 31],
+        [16, 18],
+        [11, 6],
+      ],
+      { ...ink, seed: 44, roughness: 0.9, bowing: 1.4 },
+    ),
+    gen.line(10, 5, 5, 16, { ...ink, seed: 45, roughness: 1.1, disableMultiStroke: true }),
+    gen.line(10, 5, 18, 13, { ...ink, seed: 46, roughness: 1.1, disableMultiStroke: true }),
+  ),
+});
+
+/**
  * A marker swipe behind a glossed term.
  *
  * Deliberately a very thick stroked line and not a filled rectangle: rough's
@@ -147,6 +175,7 @@ const highlight = (): Doodle => ({
 export const doodles = {
   oval: oval(),
   arrowLeft: arrowLeft(),
+  arrowUp: arrowUp(),
   highlight: highlight(),
 } satisfies Record<string, Doodle>;
 

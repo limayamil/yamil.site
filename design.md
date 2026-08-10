@@ -186,17 +186,32 @@ palabras no hace falta un eje de peso.
 
 ## 4. Inventario de anotaciones
 
-Cinco gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
+Siete gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 
 | # | Dónde | Marca | Se dispara con |
 |---|---|---|---|
 | 1 | `h1`, el apellido — [Intro.astro](src/components/Intro.astro) | Óvalo (`oval`) | `.enter` del `h1` (`--i:1`) |
-| 2 | A la derecha de los links de contacto | Flecha (`arrowLeft`) + nota manuscrita | `.enter` del bloque inferior (`--i:5`) |
+| 2 | A la derecha de los links de contacto | Flecha (`arrowLeft`) + nota manuscrita | `.enter` del bloque inferior (`--i:6`) |
 | 3 | Primer término glosado del bio | Resaltador (`highlight`) | `.enter` del bio (`--i:3`) |
 | 4 | Links de contacto — [Links.astro](src/components/Links.astro) | Subrayado en primario (CSS puro) | hover / focus |
+| 5 | Ranura de reposo del panel de ejes — [Axes.astro](src/components/Axes.astro) | Flecha hacia arriba (`arrowUp`) + nota manuscrita | `.enter` de la columna |
+| 6 | El empleador en la línea de experiencia (`.link-em`) | Resaltador (`highlight`) + subrayado permanente en primario | `.enter` del bloque de experiencia (`--i:4`) |
 
-El texto de la nota #2 es dato, no markup: `profile.contactNote` en
-[profile.ts](src/data/profile.ts).
+El texto de las notas #2 y #5 es dato, no markup: `profile.contactNote` y
+`profile.restingNote` en [profile.ts](src/data/profile.ts).
+
+La #6 es la única que rompe la regla de "un solo resaltador por columna": el
+bio ya trae el suyo en #3. Es una decisión explícita — el nombre del empleador
+actual es el dato más concreto de la columna y se pidió marcado — pero es
+también el techo. Un tercer resaltador en el mismo scroll deja de leerse como
+alguien marcando lo que importaba y pasa a leerse como una leyenda.
+
+La #5 es una instrucción, no una línea de copy: dice que la lista de arriba
+responde al puntero, y la flecha es la que la ata a esa lista. Sólo existe con
+puntero — en touch el panel abre en el primer eje y la ranura de reposo nunca se
+muestra (`idle` en [motion.ts](src/scripts/motion.ts)), así que la copia puede
+hablar de mouse sin mentir. La flecha se dibuja más alta que la nota porque
+tiene que cruzar el `margin-top` del panel antes de llegar a los botones.
 
 La marca #1 rodea **el apellido**, no el nombre completo: una marca que rodea
 todo no marca nada. La #3 resalta **el primer** término glosado de cada idioma,
@@ -250,28 +265,42 @@ vez de sumarse. El estado activo lo siguen llevando el color y el chevron.
 `.intro` es `position: sticky; height: 100svh` arriba de 62rem. Todo lo que se
 agregue tiene que entrar en un viewport.
 
-**Medido:** con la columna en su punto más angosto (304px, en un viewport de
-exactamente 62rem), el intro necesita **1050px** en ambos idiomas. Por eso el
-escape hatch de `global.css` está en `max-height: 65.75rem` (1052px, dos de
-margen para redondeo sub-pixel): sticky sólo puede activarse de 1053px para
-arriba.
+La altura que necesita **depende del ancho**: la columna es `max(19rem, 30vw)`,
+así que una pantalla más ancha envuelve la copia en menos líneas. Por eso el
+escape hatch de `global.css` está tramado por ancho, no es un solo número.
 
-> Ese número estaba en 61rem (976px) y ya se quedaba ~74px corto: entre 977px y
-> 1050px de alto, la columna se pinneaba y recortaba su propio footer en
-> silencio. La nota de contacto no agrega nada — va en la fila de los links, no
-> en una propia — así que el número corregido es el que esta columna siempre
-> necesitó.
+| Tramo | Viewport más angosto | Columna | Altura de flujo | Sticky desde |
+|---|---|---|---|---|
+| 62–90rem | 992px | 304px | 1085px | > 67rem (1072px) |
+| 90–120rem | 1440px | 432px | 951px | ≥ 57.5rem (920px) |
+| ≥ 120rem | 1920px | 576px | 905px | ≥ 54.5rem (872px) |
 
-**Cómo re-medirlo** (obligatorio si se agrega una fila al intro): poner el
-viewport en 992px de ancho, forzar sobre `.intro` la forma flex con
-`height: auto`, y leer la altura de flujo en ES y EN.
+> Un solo umbral tiene que ser el del tramo más angosto (~67rem, 1072px), y con
+> eso una pantalla de 1920x1080 — donde el intro entra en 866px — no se pinneaba
+> nunca. El número venía subiendo (61rem → 65.75rem → 74.625rem) porque cada
+> fila nueva del intro lo empujaba; tramarlo por ancho es lo que corta esa
+> escalera.
+
+Dos palancas lo bajaron a estos valores, y las dos son de contenido, no del
+umbral: `.col-prose` pasa de 38ch a **62ch** arriba de 62rem — cada línea que la
+copia no envuelve son 23px de presupuesto — y el `padding-block` de la columna
+pinneada pasó de `8vh` a `6vh`, que arriba de ~1200px de viewport da lo mismo
+(ambos clampean a 4.5rem) y sólo devuelve espacio en los viewports cortos que lo
+están peleando: ~32px en 1080p.
+
+**Cómo re-medirlo** (obligatorio si se agrega una fila al intro, y hay que hacer
+los tres tramos): poner el viewport en el ancho más angosto del tramo, forzar
+sobre `.intro` la forma flex con `height: auto`, leer la altura de flujo en ES y
+EN, quedarse con la más alta, y despejar el viewport que la aguanta cuando el
+padding es 6vh de esa misma altura: `H = (flujo − padding) / 0.88`, redondeado
+al próximo 0.5rem.
 
 ### Peso
 
 | Qué | Cuánto |
 |---|---|
-| Markup de los 7 doodles en el HTML | 4.5KB (11% del `index.html`) |
-| `index.html` completo | 40.2KB → **13.5KB gzip** |
+| Markup de los 7 doodles en el HTML | 4.5KB |
+| `index.html` completo | 90.5KB → **20.1KB gzip** (era 40.2 → 13.5 antes del bento; ver §8) |
 | Caveat (no preloadeado, `swap`) | 47.7KB |
 | JS de runtime | `motion.ts` + `veil.ts` (§7). Cero dependencias nuevas |
 
@@ -369,3 +398,121 @@ las tres decisiones de contención en `veil.ts`, y ninguna es opcional:
   aun "pausado" — sólo congelaba el reloj.
 - **`prefers-reduced-motion` dibuja un frame y para.** El original no contemplaba
   la query. Vale la misma regla de §5: la imagen es el punto, el movimiento no.
+
+---
+
+## 8. La grilla bento
+
+La columna derecha tiene dos vistas y una sola URL: el índice (fila de filtros +
+grilla) y un caso abierto. Las dos están en el HTML a la vez y `data-view` en
+`.projects` elige una, el mismo truco que `html[data-lang]` hace con los dos
+idiomas. El hash `#caso/<slug>` es todo el router.
+
+### Los tres tiers
+
+El tamaño **es** la afirmación. No hay otra señal de jerarquía: ni badges, ni
+"destacado", ni orden implícito.
+
+| Tier | ≥62rem (3 col) | 34–62rem (2 col) | <34rem (1 col) |
+|---|---|---|---|
+| `primary` | 3 × 2 | 2 × 2 | ratio 5/4 |
+| `secondary` + `horizontal` | 2 × 1 | 2 × 1 | ratio 16/11 |
+| `secondary` + `vertical` | 1 × 2 | 1 × 2 | ratio 4/5 |
+| `tertiary` | 1 × 1 | 1 × 1 | ratio 16/11 |
+
+En una sola columna los spans no significan nada, así que cada tier declara su
+proporción vía `--tile-ratio` en lugar de su span. La propiedad se setea por
+tier y el `aspect-ratio` se apaga con una única regla de la misma
+especificidad — por eso es una custom property y no el `aspect-ratio` directo.
+
+`grid-auto-flow: dense` es lo que evita que la grilla se lea como una escalera:
+un tile vertical detrás de uno horizontal rellena el hueco en vez de dejarlo.
+El costo es que `dense` desacopla el orden visual del orden del DOM, así que el
+`order` de `projects.json` tiene que quedar cerca del orden de lectura; dense
+sólo rellena huecos, no baraja.
+
+**El índice completo empaqueta exacto.** Con 9 proyectos las celdas suman 27, que
+son 9 filas de 3, y el `order` actual las cierra sin un hueco:
+
+```
+filas 1–2   primary                      (3×2 = 6)
+filas 3–4   vertical vertical ter ter    (2+2+1+1 = 6)
+filas 5–6   primary                      (3×2 = 6)
+fila  7     horizontal ter               (2+1 = 3)
+filas 8–9   primary                      (3×2 = 6)
+```
+
+Si se agrega o saca un proyecto hay que rehacer esta cuenta o aceptar el hueco
+en la cola. Filtrado por un solo eje quedan 3 tiles y la cola queda dispareja:
+tres piezas no llenan una grilla de tres columnas, y está bien que así sea.
+
+### El scrim del tile, que es load-bearing
+
+La media pasó a ser **fondo**: el texto va encima. Eso saca el contraste de la
+órbita de `.veil-scrim` (§7) — ninguna de esas medidas sobrevive a poner texto
+sobre arte cuyo brillo no controlamos.
+
+Hay dos capas y sólo una carga el presupuesto:
+
+- **`.tile-media::after`** — un velo suave sobre toda la imagen (0.45 abajo →
+  0.06 arriba). Es estética: asienta el arte en la página y le da al chevron
+  algo sobre qué apoyarse. El contraste no se apoya acá.
+- **`.tile-body::before`** — el que sí. Va colgado de **la copia, no del tile**,
+  y esa es la decisión: un tile es una celda de alto fijo pero la copia no lo
+  es, así que cualquier gradiente expresado como porcentaje del tile es una
+  conjetura que un título de dos líneas rompe. La primera versión iba por
+  porcentajes y dejaba la línea de eje de un terciario en **1.9:1** sobre un
+  frame blanco, porque ese tile resultó ser 63% texto.
+
+  Anclado a `.tile-body` la geometría es exacta a cualquier alto y cualquier
+  largo de copia: el tramo opaco cubre la copia más el padding de abajo, y el
+  degradé es exactamente los 3.5em de sangrado de arriba — la rampa siempre
+  arranca donde el texto termina. En `em`, así escala con la tipografía y no con
+  el layout.
+
+**El alfa está medido, no elegido.** El token que manda es
+`--color-primary-ink` (la línea de eje): con L = 0.362 necesita un fondo de
+L ≤ 0.042 para sostener 4.5:1, y bajar arte blanco hasta ahí pide α ≥ 0.82.
+
+| Token | Sobre frame blanco (α efectivo 0.934) | Piso |
+|---|---|---|
+| `--color-ink` (título) | 17.2:1 | 4.5 ✓ |
+| `--color-muted` (bajada) | 7.7:1 | 4.5 ✓ |
+| `--color-primary-ink` (eje) | 6.8:1 | 4.5 ✓ |
+| `.tile-cue` sobre `rgb(18 9 6 / 0.55)` | 4.2:1 | 3.0 ✓ |
+
+El peor caso es un frame blanco puro; los placeholders actuales son mucho más
+oscuros, así que el presupuesto ya está pago para cuando llegue material real.
+
+**Cómo re-medirlo** si se toca el 0.93 o el sangrado de 3.5em: componer blanco
+contra el alfa efectivo de las dos capas, pasar a luminancia relativa y sacar la
+razón contra cada token. El chevron va aparte: está arriba del tile, donde el
+scrim ya soltó, y por eso su fondo es oscuro (`rgb(18 9 6 / 0.55)`) y no un lavado
+blanco, que sobre arte claro se lo llevaría puesto.
+
+### El alto de fila
+
+`grid-auto-rows: clamp(10rem, 14vw, 13.5rem)`. El mínimo no es decorativo: un
+terciario carga eje + título + bajada, que son ~105px de copia, y abajo de 10rem
+el scrim detrás de esa copia se come la celda entera y el arte deja de leerse.
+
+### Los tiles no llevan marca
+
+Misma razón que los ejes (§4): el tile ya tiene su propia estructura — hairline,
+radio, scrim — y una anotación encima compite con eso en vez de sumarle. La
+única marca del bento es el chevron, que es afordancia, no anotación.
+
+### Peso
+
+Los 9 casos se renderizan en build y viajan ocultos en el HTML: sin fetch, sin
+plantilla en cliente, y con JS apagado un `#caso/slug` no rompe nada. El costo es
+real y está acá para que se vea:
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| `index.html` | 40.2KB → 13.5KB gzip | 90.5KB → **20.1KB gzip** |
+| `motion.ts` compilado | — | 7.8KB → 2.8KB gzip |
+
+Si eso llegara a molestar, la palanca es sacar los casos del HTML inicial, no
+recortar la copia — pero eso trae fetch y plantillas en cliente, que es
+exactamente lo que este sitio no tiene.
