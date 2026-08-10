@@ -205,6 +205,21 @@ html {
   border-radius: 2px;
 }
 
+/* Left-edge frame line — Desktop only. Fixed rather than a `body` border so it
+   stays flush with the viewport edge regardless of scroll, and sits above the
+   shader/scrim (z-index matches the shell's own stacking context). */
+@media (min-width: 62rem) {
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--color-primary);
+    z-index: 1;
+    pointer-events: none;
+  }
+}
+
 .display {
   font-family: var(--font-display);
   font-weight: 400;
@@ -746,13 +761,18 @@ html[data-lang='es'] [data-i18n='en'] {
    height that fits it once padding is 6vh of that same height:
    H = (content excluding padding) / 0.88, rounded up to the next 0.5rem.
 
-     tier          narrowest   column   flow height    release below
-     62–90rem      992px       304px    1085px         67rem   (1072px)
-     90–120rem     1440px      432px     951px         57.5rem (920px)
-     ≥120rem       1920px      576px     905px         54.5rem (872px)
+     tier          narrowest   column   content   release below
+     62–90rem      992px       304px    907px     64.5rem (1032px)
+     90–120rem     1440px      432px    861px     61.5rem (984px)
+     ≥120rem       1920px      576px    774px     55rem   (880px)
 
-   (Flow heights above are at 4.5rem padding; the thresholds account for the
-   padding shrinking to 6vh at those heights.)
+   (Content is the flow height *excluding* padding — the reading the formula
+   above takes. Spanish is the taller language, or ties with English.)
+
+   Re-measured when the experience line and its CTA moved into the boxed `.now`
+   section. What paid for the box was the copy: one sentence opening on its own
+   subject ("Ahora en…") instead of three words of preamble, which is a line
+   back at every width the old phrasing wrapped.
 
    Adding a row to the intro means re-running all three. The thresholds are a
    reading, not a lever — trimming the intro, or widening `.col-prose`, is what
@@ -764,21 +784,21 @@ html[data-lang='es'] [data-i18n='en'] {
    to be on all three or none: at (0,2,0) a single scoped rule would outrank the
    unscoped ones regardless of source order, and the two that re-assert sticky
    on tall screens would stop being able to. */
-@media (min-width: 62rem) and (max-height: 67rem) {
+@media (min-width: 62rem) and (max-height: 64.5rem) {
   .intro[data-view='bio'] {
     position: static;
     height: auto;
   }
 }
 
-@media (min-width: 90rem) and (min-height: 57.5rem) {
+@media (min-width: 90rem) and (min-height: 61.5rem) {
   .intro[data-view='bio'] {
     position: sticky;
     height: 100svh;
   }
 }
 
-@media (min-width: 120rem) and (min-height: 54.5rem) {
+@media (min-width: 120rem) and (min-height: 55rem) {
   .intro[data-view='bio'] {
     position: sticky;
     height: 100svh;
@@ -919,7 +939,8 @@ html[data-lang='es'] [data-i18n='en'] {
    would stack their notes on top of each other.
 --------------------------------------------------------------------------- */
 
-.bio p {
+.bio p,
+.now p {
   position: relative;
 }
 
@@ -1003,6 +1024,48 @@ html[data-lang='es'] [data-i18n='en'] {
 .gloss:hover .gloss-note,
 .gloss:focus-visible .gloss-note,
 .gloss[data-open='true'] .gloss-note {
+  opacity: 1;
+  transform: none;
+}
+
+/* `.gloss-role` — the one gloss whose marked term is a whole phrase (the job
+   title under "now"), not a single word. `.gloss` is inline-block precisely
+   so it stays atomic on its line; a four-word phrase in the pinned 19rem
+   column needs the opposite, so this overrides it back to a plain inline
+   box that wraps like the surrounding text. Its note is a sibling in the
+   markup, not a child, because an absolutely positioned child of an inline
+   box anchors to whichever line-fragment it last rendered on — unusable
+   once the box wraps. As a sibling it falls back to `.now p`'s own
+   `position: relative` and anchors under the paragraph instead. */
+.gloss-role {
+  display: inline;
+}
+
+/* And the one note that opens *upward*. Every other gloss hangs below its
+   paragraph, which works while the paragraph is loose text with more of the
+   column under it. This one is the second-to-last row of a framed box: dropped
+   downward it covers the CTA and hangs a few pixels past the border, which
+   reads as a panel that escaped rather than one that opened.
+   Above the box it overlaps the bio, which is what a popover is for. */
+.now .gloss-note {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  /* Squared to the frame it belongs to. The default note is allowed to be
+     wider than its column — a 19rem measure would wrap a note almost per word —
+     but that licence assumes no visible box around it. Here there is one, and a
+     note wider than the card is just a second card at the wrong size. The
+     minimum goes with it: the card's inner width already clears 14rem. */
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  right: 0;
+  /* Rises into place, since it now arrives from below. */
+  transform: translate3d(0, 4px, 0);
+}
+
+.gloss-role:hover + .gloss-note,
+.gloss-role:focus-visible + .gloss-note,
+.gloss-role[data-open='true'] + .gloss-note {
   opacity: 1;
   transform: none;
 }
@@ -1104,6 +1167,26 @@ html[data-lang='es'] [data-i18n='en'] {
   transform: none;
 }
 
+/* Committed, not hovered. Hovering a chip is a *preview* — it dims the work on
+   the right and undoes itself the moment the pointer leaves — so the chip that
+   actually holds the grid filtered cannot be a stronger version of the hover
+   state; it has to be a different object. Filled, the way the row above the
+   grid used to be, and dark ink on the light tint because this is one of the
+   two places on the page where the primary is a background (7.7:1 — the pair is
+   measured in design.md §1).
+
+   After the hover rules on purpose: same (0,2,0) specificity, so source order is
+   what stops hovering a pressed chip from lifting the fill back off. */
+.chip[aria-pressed='true'] {
+  border-color: transparent;
+  background-color: var(--color-primary-ink);
+  color: var(--color-bg);
+}
+
+.chip[aria-pressed='true'] .axis-title {
+  color: var(--color-bg);
+}
+
 .axis-icon {
   flex: none;
   transition: transform 0.5s var(--ease-out);
@@ -1155,6 +1238,83 @@ html[data-lang='es'] [data-i18n='en'] {
    that marks a link leaving the page rather than the chevron the axes use. */
 .axis-link {
   margin-top: 0.375rem;
+  /* The title takes the flexible column and the icon swaps next to the cue,
+     so the whole row reads right-to-left: copy, glyph, chevron — the icon
+     stays part of the "open this" cluster instead of anchoring the label. */
+  grid-template-columns: 1fr auto auto;
+}
+
+.axis-link .axis-title {
+  order: 1;
+  text-align: right;
+}
+
+.axis-link .axis-icon {
+  order: 2;
+}
+
+.axis-link .axis-cue {
+  order: 3;
+}
+
+/* "Ahora" — where the work is today, and the door to where it has been, in a
+   frame of their own. Two rows, no caption over them: the copy opens with the
+   word a caption would have used, so the box is left to do the grouping.
+
+   A hairline and a 3.5% wash, no more. This sits over the shader like
+   everything else in the column, and an opaque panel would read as a card
+   competing with the bento on the right rather than as a bracket around two
+   lines of the bio.
+
+   The frame is padded on three sides only — the CTA row's own `padding-block`
+   is the bottom inset — and the axis rule is turned around into the box's
+   divider. A rule under the last row *inside* a border reads as a mistake, and
+   as a `border-top` it buys back its own 1px besides. */
+.now {
+  /* `.col-prose` plus the box's own inset, rather than that class itself. A cap
+     applied to the frame is a cap on the copy *minus* the padding, which wraps
+     the line one further and costs the pinned column ~23px for nothing. Adding
+     the inset back keeps the measure identical to the bio above it. */
+  max-width: calc(38ch + 2rem);
+  padding: 0.875rem 1rem 0;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.035);
+}
+
+@media (min-width: 62rem) {
+  .now {
+    max-width: calc(62ch + 2rem);
+  }
+}
+
+/* The live dot heads the sentence rather than sitting in a row of its own, so
+   the whole statement stays one line of copy.
+
+   Taken out of the flow rather than left inline with a negative `text-indent`:
+   the sentence carries an `inline-flex` link two words in, and an atomic inline
+   box does not always take the first line's indent with it. Out of the flow the
+   dot cannot push anything, every wrapped line clears it on the paragraph's own
+   padding, and the vertical placement stops depending on the baseline. */
+.now-line {
+  padding-left: 1.0625rem;
+}
+
+.now-line .dot {
+  position: absolute;
+  left: 0;
+  /* Half the line-height of `.prose-tight`, so it centres on the first line
+     whatever the copy does below it. */
+  top: 0.775em;
+  transform: translateY(-50%);
+}
+
+/* The section's `gap` spaces the link off the copy; its own top margin would
+   only add to it. */
+.now .axis-link {
+  margin-top: 0;
+  border-top: 1px solid var(--color-line);
+  border-bottom: 0;
 }
 
 .axis-panel {
@@ -1363,7 +1523,7 @@ html[data-lang='es'] [data-i18n='en'] {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2.25rem;
   /* The lane the rail and its nodes live in. */
   padding-left: 2.25rem;
 }
@@ -1531,40 +1691,56 @@ html[data-lang='es'] [data-i18n='en'] {
 
 @media (min-width: 62rem) {
   .projects {
-    /* Match the intro's top padding so the filter row lines up with the name
-       it sits beside — the alignment contract the first card used to hold. */
+    /* Match the intro's top padding so the top of the grid lines up with the
+       name it sits beside — the alignment contract the first card holds. */
     padding-block: clamp(2.5rem, 8vh, 4.5rem) clamp(6rem, 20vh, 12rem);
   }
 }
 
-.projects[data-view='case'] .filters,
+.projects[data-view='case'] .filter-bar,
 .projects[data-view='case'] .bento,
 .projects[data-view='case'] .bento-empty {
   display: none;
 }
 
 /* ---------------------------------------------------------------------------
-   Filters — the axes, seen from the work side
+   Filter bar — the receipt, not the control
 
-   The three pills are built from `profile.capabilities`, so this row and the
-   "En qué soy bueno" list in the left column cannot drift apart: a project's
-   `axis` is the same key as a capability's `icon`. Pressed state is
-   `aria-pressed` and nothing else, the same as `.lang-option` — one attribute
-   for both the look and the announcement, so they can never disagree.
+   The axes are named once on this page, as chips in the left column; there is
+   no second row of them here. What this is instead is the state that column
+   cannot show from where it stands: which axis is on, and the way out of it.
+   Hidden until there is one, so the grid keeps its own top edge in the default
+   case.
 --------------------------------------------------------------------------- */
 
-.filters ul {
+.filter-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
 }
 
-.filter {
+/* `display: flex` outranks the UA's `[hidden]`, the same as `.bento-empty`. */
+.filter-bar[hidden] {
+  display: none;
+}
+
+.filter-active {
+  color: var(--color-faint);
+}
+
+.filter-active strong {
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.filter-clear {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4375rem;
   border: 0;
-  padding: 0.5rem 0.875rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.04);
   box-shadow: inset 0 0 0 1px var(--color-line);
@@ -1579,28 +1755,14 @@ html[data-lang='es'] [data-i18n='en'] {
     transform 0.4s var(--ease-out);
 }
 
-.filter:hover,
-.filter:focus-visible {
+.filter-clear:hover,
+.filter-clear:focus-visible {
   color: var(--color-ink);
   transform: translate3d(0, -1px, 0);
 }
 
-/* Dark ink on the light tint, not the reverse: this is the one place on the
-   page where the primary is a background, so the text on it has to flip. */
-.filter[aria-pressed='true'] {
-  background: var(--color-primary-ink);
-  box-shadow: none;
-  color: var(--color-bg);
-}
-
-.filter-icon {
+.filter-clear svg {
   flex: none;
-}
-
-.filter-count {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.6875rem;
-  opacity: 0.6;
 }
 
 /* ---------------------------------------------------------------------------
@@ -2287,7 +2449,7 @@ html[data-lang='es'] [data-i18n='en'] {
   .tile-link:hover .tile-media video,
   .tile-link:hover .tile-title,
   .tile-link:hover .tile-cue,
-  .filter:hover,
+  .filter-clear:hover,
   .case-back:hover svg {
     transform: none;
   }

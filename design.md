@@ -288,11 +288,16 @@ La altura que necesita **depende del ancho**: la columna es `max(19rem, 30vw)`,
 así que una pantalla más ancha envuelve la copia en menos líneas. Por eso el
 escape hatch de `global.css` está tramado por ancho, no es un solo número.
 
-| Tramo | Viewport más angosto | Columna | Altura de flujo | Sticky desde |
+| Tramo | Viewport más angosto | Columna | Contenido (sin padding) | Sticky desde |
 |---|---|---|---|---|
-| 62–90rem | 992px | 304px | 1085px | > 67rem (1072px) |
-| 90–120rem | 1440px | 432px | 951px | ≥ 57.5rem (920px) |
-| ≥ 120rem | 1920px | 576px | 905px | ≥ 54.5rem (872px) |
+| 62–90rem | 992px | 304px | 907px | > 64.5rem (1032px) |
+| 90–120rem | 1440px | 432px | 861px | ≥ 61.5rem (984px) |
+| ≥ 120rem | 1920px | 576px | 774px | ≥ 55rem (880px) |
+
+> Re-medidos cuando la línea de experiencia y su CTA pasaron a la caja `.now`.
+> Lo que pagó el marco fue la copia: una sola frase que abre con su propio
+> sujeto ("Ahora en…") en vez de tres palabras de preámbulo, que es un renglón
+> devuelto en todos los anchos donde la redacción vieja envolvía.
 
 > Un solo umbral tiene que ser el del tramo más angosto (~67rem, 1072px), y con
 > eso una pantalla de 1920x1080 — donde el intro entra en 866px — no se pinneaba
@@ -422,10 +427,39 @@ las tres decisiones de contención en `veil.ts`, y ninguna es opcional:
 
 ## 8. La grilla bento
 
-La columna derecha tiene dos vistas y una sola URL: el índice (fila de filtros +
-grilla) y un caso abierto. Las dos están en el HTML a la vez y `data-view` en
-`.projects` elige una, el mismo truco que `html[data-lang]` hace con los dos
-idiomas. El hash `#caso/<slug>` es todo el router.
+La columna derecha tiene dos vistas y una sola URL: el índice (la grilla, con una
+barra arriba que sólo aparece si hay un filtro puesto) y un caso abierto. Las dos
+están en el HTML a la vez y `data-view` en `.projects` elige una, el mismo truco
+que `html[data-lang]` hace con los dos idiomas. El hash `#caso/<slug>` es todo el
+router.
+
+### El filtro vive en la otra columna
+
+Los tres ejes estaban escritos dos veces: como chips de capacidad a la izquierda
+y como una fila de píldoras arriba de la grilla. Eran el mismo control nombrando
+las mismas tres disciplinas a 60cm de distancia, y la fila se sacó en vez de
+mantenerla sincronizada. Los chips de `.axes` son ahora el control:
+
+- **Hover es preview.** Atenúa en la grilla lo que no comparte el eje
+  (`.bento[data-highlight]`) y se deshace solo cuando el puntero se va. No es
+  estado: no hay nada que borrar después.
+- **Click es compromiso.** `aria-pressed` en el chip, `data-filter` en el bento,
+  y las tiles que no entran salen del flujo. Volver a apretar el chip prendido lo
+  apaga — es la única salida que tiene un puntero que nunca soltó el chip.
+- **Prendido no se dibuja como hover con más fuerza.** Un hover más oscuro y un
+  filtro puesto se confunden, y son cosas distintas: una se va sola y la otra no.
+  El chip prendido se rellena con `--color-primary-ink` y da vuelta el texto a
+  `--color-bg` (7.7:1) — el mismo tratamiento que tenía la píldora activa de la
+  fila vieja, que era el único lugar de la página donde el primario es fondo.
+- **Con un filtro puesto el preview se apaga.** Todo lo que quedó en la grilla ya
+  es ese eje: atenuar "lo que no coincide" o no hace nada, o apaga la grilla
+  entera mientras se pasea por otro chip.
+
+Lo que queda del lado derecho es el **recibo**, no el control: qué eje está
+puesto y cómo salir. Existe porque el chip que lo prendió está en una columna que
+se va con el scroll, y porque un `role="status"` es la forma de que apretar algo
+en una columna se anuncie en la otra. Sin filtro está `hidden`, así que la grilla
+conserva su borde superior en el caso normal.
 
 ### Los tres tiers
 
@@ -600,7 +634,7 @@ desvanece no tiene más que aire.
 
 ### El nodo lleva el glifo de la disciplina
 
-Misma clave que usan el panel de capacidades y los filtros del bento
+Misma clave que usan el panel de capacidades y el filtro del bento
 (`Capability.icon` = `TrackEntry.axis` = `axis` en projects.json). Un valor
 fuera de la unión rompe el build. Sólo llega como el glifo del nodo y una
 etiqueta `sr-only`; hoy nada en esta vista filtra o resalta por él — se probaron

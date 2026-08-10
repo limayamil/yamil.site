@@ -1,0 +1,109 @@
+{
+  "_readme": [
+    "Plantilla de un caso de portfolio, para copiar como entrada nueva dentro del array de src/data/projects.json.",
+    "Borrá este bloque '_readme' antes de pegarlo — no es parte del schema (content.config.ts) y el build fallaría con él.",
+    "Todo texto visible va en pares { es, en } — nunca un string suelto, salvo 'client', 'id', 'poster', 'video', 'src', 'href', que no son bilingües.",
+    "'id' debe ser único y en kebab-case: se usa como slug para #caso/<id>.",
+    "'axis' es una de tres claves compartidas con profile.ts (capabilities) y track.ts (roles): 'engineering' | 'motion' | 'ops'. Un typo rompe el filtro del bento en silencio.",
+    "'tier' decide el tamaño en el bento: 'primary' (fila completa, dos filas), 'secondary' (dos celdas), 'tertiary' (una celda). Es la única señal de importancia que tiene el diseño.",
+    "'shape' solo se lee cuando tier === 'secondary': 'horizontal' (dos columnas) o 'vertical' (dos filas).",
+    "'order' es la posición en la grilla — los nueve proyectos actuales llenan exactamente 27 celdas / 9 filas a 3 columnas. Sumar o restar un caso rompe esa cuenta y hay que reacomodarla (ver CLAUDE.md).",
+    "'poster' es obligatorio siempre (también sirve de poster del video). 'video' es opcional — si está, el tile lo reproduce en hover/scroll.",
+    "detail.facts es la ficha técnica (Rol / Cliente / Año / Stack, etc.) — array abierto, tantas filas como haga falta.",
+    "detail.sections es el cuerpo del caso: heading + uno o más párrafos (body es un array de localized, un elemento por párrafo).",
+    "detail.metrics son números duros — puede ir vacío si el caso no tiene métricas para mostrar.",
+    "detail.gallery es opcional — 'wide: true' hace que una imagen ocupe las dos columnas de la grilla de galería.",
+    "detail.link es opcional — para linkear al trabajo real cuando existe."
+  ],
+  "id": "slug-unico-del-caso",
+  "title": {
+    "es": "Título del caso en español",
+    "en": "Case title in English"
+  },
+  "summary": {
+    "es": "Una sola oración — el copy que aparece en el tile del grid.",
+    "en": "One sentence — the copy that shows on the grid tile."
+  },
+  "axis": "engineering",
+  "tier": "tertiary",
+  "shape": "horizontal",
+  "client": "Nombre del cliente (o placeholder)",
+  "year": 2025,
+  "roles": [
+    {
+      "es": "Disciplina en español",
+      "en": "Discipline in English"
+    }
+  ],
+  "poster": "/media/nombre-del-poster.svg",
+  "video": "/media/nombre-del-loop.mp4",
+  "featured": true,
+  "order": 10,
+  "detail": {
+    "lead": {
+      "es": "Párrafo de apertura del caso — una o dos oraciones, se muestra más grande que el resto del cuerpo.",
+      "en": "Opening paragraph of the case — one or two sentences, rendered larger than the body."
+    },
+    "facts": [
+      {
+        "label": { "es": "Rol", "en": "Role" },
+        "value": { "es": "Diseño y desarrollo", "en": "Design and build" }
+      },
+      {
+        "label": { "es": "Stack", "en": "Stack" },
+        "value": { "es": "Herramientas usadas", "en": "Tools used" }
+      }
+    ],
+    "sections": [
+      {
+        "heading": { "es": "El problema", "en": "The problem" },
+        "body": [
+          {
+            "es": "Primer párrafo de esta sección.",
+            "en": "First paragraph of this section."
+          },
+          {
+            "es": "Segundo párrafo, opcional — se puede agregar cuantos hagan falta.",
+            "en": "Second paragraph, optional — add as many as needed."
+          }
+        ]
+      },
+      {
+        "heading": { "es": "Qué hice", "en": "What I did" },
+        "body": [
+          {
+            "es": "Texto de esta sección.",
+            "en": "Copy for this section."
+          }
+        ]
+      },
+      {
+        "heading": { "es": "Resultado", "en": "Outcome" },
+        "body": [
+          {
+            "es": "Texto de esta sección.",
+            "en": "Copy for this section."
+          }
+        ]
+      }
+    ],
+    "metrics": [
+      {
+        "value": "−40%",
+        "label": { "es": "descriptor de la métrica", "en": "metric descriptor" }
+      }
+    ],
+    "gallery": [
+      {
+        "src": "/media/nombre-de-imagen.svg",
+        "alt": { "es": "Descripción de la imagen", "en": "Image description" },
+        "caption": { "es": "Pie de foto opcional", "en": "Optional caption" },
+        "wide": false
+      }
+    ],
+    "link": {
+      "label": { "es": "Ver el sitio en vivo", "en": "View the live site" },
+      "href": "https://ejemplo.com"
+    }
+  }
+}

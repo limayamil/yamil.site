@@ -98,19 +98,27 @@ export const profile: Profile = {
 
   bio: [
     {
-      es: 'La mayoría de los procesos no están rotos: están [indocumentados](Nadie los escribió. Viven en la cabeza de tres personas y se rompen la semana que una se toma vacaciones.), que es peor. Ahí empieza mi trabajo.',
-      en: "Most processes aren't broken — they're [undocumented](Nobody wrote them down. They live in three people's heads and break the week one of them takes leave.), which is worse. That's where my work starts.",
+      es: 'La mayoría de los procesos no están rotos: están [indocumentados](Nadie los escribió. Viven en la cabeza de tres personas y se rompen la semana que una se toma vacaciones.). Ahí arranca mi trabajo.',
+      en: "Most processes aren't broken: they're [undocumented](Nobody wrote them down. They live in three people's heads and break the week one of them takes leave.). That's where my work starts.",
     },
     {
-      es: 'Traduzco necesidades de negocio en [workflows](Formularios, CRM, integraciones y reporting que se ejecutan solos y dejan rastro.), interfaces y documentación. Si algo se hace tres veces igual, ya no debería hacerlo una persona.',
-      en: "I turn business needs into [workflows](Forms, CRM, integrations and reporting that run themselves and leave a trail.), interfaces and documentation. If something gets done the same way three times, a person shouldn't be doing it.",
+      es: 'Traduzco necesidades de negocio en [workflows](Formularios, CRM, integraciones y reporting que corren solos y dejan rastro.), interfaces y documentación. Lo que se repite tres veces, ya no lo hace una persona.',
+      en: "I turn business needs into [workflows](Forms, CRM, integrations and reporting that run themselves and leave a trail.), interfaces and documentation. Whatever gets repeated three times, a person shouldn't be doing it.",
     },
   ],
 
   experience: {
+    // The whole role title carries a gloss (see `bio` above) explaining what
+    // it actually covers day to day — same note already used for this stint
+    // in `track.ts`, so the two never drift apart. Unlike a bio gloss this one
+    // is several words, so `Intro.astro` renders it with `.gloss-role` rather
+    // than the single-word `.gloss` pattern — see the comment there.
+    // One sentence, and short enough to stay one: it renders as the single line
+    // of copy inside `.now`, with the live dot at its head standing in for the
+    // "actualmente" the old phrasing spent three words on.
     line: {
-      es: 'Actualmente trabajo en {company} como Technical Marketing Operations Lead.',
-      en: 'Currently at {company} as Technical Marketing Operations Lead.',
+      es: 'Ahora en {company}, como [Technical Marketing Operations Lead](Operaciones entre marketing, producto y web: automatizaciones, integraciones y el reporting que las vuelve medibles.).',
+      en: 'Now at {company}, as [Technical Marketing Operations Lead](Operations across marketing, product and web: automations, integrations and the reporting that makes them measurable.).',
     },
     company: { name: 'Kinetic Corp', href: 'https://kinetic-corp.com' },
     cta: {

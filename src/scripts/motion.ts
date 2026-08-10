@@ -5,7 +5,8 @@
  *   2. play a tile's loop on hover (pointer) or when centred (touch)
  *   3. keep the footer clock ticking
  *   4. fetch the footer's live weather reading once, on load
- *   5. drive the capability panel from whichever axis is hovered or focused
+ *   5. drive the capability panel from whichever axis is hovered or focused,
+ *      and commit that axis as the bento's filter when it is clicked
  *   6. open a bio gloss on tap, where there is no hover to open it
  *   7. run the ES/EN switch (the language is *resolved* by an inline script in
  *      Base.astro, which has to beat the first paint — this only reacts to
@@ -308,7 +309,7 @@ async function initWeather(): Promise<void> {
 
 /* -- 5. Capability axes --------------------------------------------------- */
 
-function initAxes(): void {
+function initAxes(applyFilter: ((key: string) => void) | null): void {
   const root = document.querySelector<HTMLElement>('[data-axes]');
   if (!root) return;
 
@@ -318,8 +319,12 @@ function initAxes(): void {
 
   // The axes and the bento share one key — a capability's `icon` is a
   // project's `axis` — so pointing at a discipline can dim the work that is not
-  // it, with no lookup table in between.
+  // it, with no lookup table in between, and clicking it can filter the grid
+  // down to that work with the same key again.
   const bento = document.querySelector<HTMLElement>('[data-bento]');
+
+  /** The committed filter, which is state the bento already holds. */
+  const active = () => bento?.dataset.filter ?? 'all';
 
   const show = (key: string) => {
     for (const slot of slots) slot.classList.toggle('is-active', slot.dataset.slot === key);
@@ -327,17 +332,24 @@ function initAxes(): void {
     // Pointer only. On touch the panel rests *on* an axis rather than on the
     // resting note, so a highlight here would leave two thirds of the grid
     // permanently dimmed with nothing hovering it.
+    //
+    // A committed filter also turns it off: everything left in the grid is
+    // already the filtered axis, so dimming "what does not match" would either
+    // do nothing or grey out the whole thing while another chip is hovered.
     if (bento && canHover.matches) {
-      if (key === 'rest') delete bento.dataset.highlight;
+      if (key === 'rest' || active() !== 'all') delete bento.dataset.highlight;
       else bento.dataset.highlight = key;
     }
   };
 
-  // A pointer can leave, so it gets the resting copy back on the way out. Touch
-  // cannot, so the first axis stays open and taps move between them — the panel
+  // A pointer can leave, so it gets the resting copy back on the way out —
+  // unless a filter is on, in which case what it goes back to is that filter's
+  // own copy, so the panel keeps explaining the grid being shown. Touch cannot
+  // leave, so the first axis stays open and taps move between them: the panel
   // is never empty and never reverts under a finger.
-  const idle = canHover.matches ? 'rest' : (buttons[0]?.dataset.axis ?? 'rest');
-  show(idle);
+  const base = canHover.matches ? 'rest' : (buttons[0]?.dataset.axis ?? 'rest');
+  const idle = () => (active() === 'all' ? base : active());
+  show(idle());
 
   for (const button of buttons) {
     const key = button.dataset.axis;
@@ -345,7 +357,15 @@ function initAxes(): void {
 
     button.addEventListener('pointerenter', () => show(key));
     button.addEventListener('focus', () => show(key));
-    button.addEventListener('click', () => show(key));
+    // Click commits. Pressing the axis that is already on clears it, which is
+    // the only way back for a pointer that never leaves the chip — and the
+    // second `show` is what repaints the highlight for the filter it just
+    // changed, in either direction.
+    button.addEventListener('click', () => {
+      show(key);
+      applyFilter?.(active() === key ? 'all' : key);
+      show(key);
+    });
   }
 
   if (canHover.matches) {
@@ -353,12 +373,17 @@ function initAxes(): void {
     // rows, so a per-button `pointerleave` would close it the moment the
     // pointer travelled down toward the tool marks — which are themselves
     // hoverable, and unreachable if the panel keeps snapping back.
-    root.addEventListener('pointerleave', () => show(idle));
+    root.addEventListener('pointerleave', () => show(idle()));
     root.addEventListener('focusout', (event) => {
       const next = (event as FocusEvent).relatedTarget;
-      if (!(next instanceof Node) || !root.contains(next)) show(idle);
+      if (!(next instanceof Node) || !root.contains(next)) show(idle());
     });
   }
+
+  // Clearing from the other column has to reach back here: the chip loses its
+  // pressed state (that is `apply`'s job) but the panel and the highlight are
+  // this function's, and no pointer event will fire to correct them.
+  bento?.addEventListener('bentofilter', () => show(idle()));
 }
 
 /* -- 6. Bio glosses -------------------------------------------------------- */
@@ -428,24 +453,47 @@ function initLang(): void {
 
 /* -- 8. Bento filters ------------------------------------------------------ */
 
-function initFilters(): void {
-  const root = document.querySelector<HTMLElement>('[data-filters]');
+/**
+ * The filter itself. The *control* is the axis chips in the left column (job 5,
+ * which owns the clicks and calls the function returned here) — this side owns
+ * the grid, the pressed state and the bar above the tiles that says what is on
+ * and offers the way out.
+ *
+ * The bar is the only thing on the right that names the filter, because the
+ * chip that set it is in a column that scrolls away. It also dispatches
+ * `bentofilter` on the bento so the axes can resync their panel when the filter
+ * is cleared from here, with no pointer event to do it for them.
+ */
+function initFilters(): ((key: string) => void) | null {
   const bento = document.querySelector<HTMLElement>('[data-bento]');
   const empty = document.querySelector<HTMLElement>('[data-bento-empty]');
-  if (!root || !bento) return;
+  if (!bento) return null;
 
-  const buttons = Array.from(root.querySelectorAll<HTMLElement>('[data-filter-set]'));
+  const chips = Array.from(document.querySelectorAll<HTMLElement>('[data-axes] [data-axis]'));
   const tiles = Array.from(bento.querySelectorAll<HTMLElement>('.tile'));
-  if (buttons.length === 0 || tiles.length === 0) return;
+  if (chips.length === 0 || tiles.length === 0) return null;
+
+  const bar = document.querySelector<HTMLElement>('[data-filter-bar]');
+  const name = bar?.querySelector<HTMLElement>('[data-filter-name]');
+  const clear = bar?.querySelector<HTMLElement>('[data-filter-clear]');
 
   const matches = (tile: HTMLElement, key: string) => key === 'all' || tile.dataset.axis === key;
 
   const apply = (key: string) => {
     if (bento.dataset.filter === key) return;
 
-    for (const button of buttons) {
-      button.setAttribute('aria-pressed', String(button.dataset.filterSet === key));
+    let label = '';
+    for (const chip of chips) {
+      const on = chip.dataset.axis === key;
+      chip.setAttribute('aria-pressed', String(on));
+      // The chip's own title, not a second copy of it in this column — a
+      // discipline goes by the same name in both languages, so there is nothing
+      // to switch and nothing to keep in sync.
+      if (on) label = chip.querySelector('.axis-title')?.textContent?.trim() ?? '';
     }
+
+    if (bar) bar.hidden = key === 'all';
+    if (name) name.textContent = label;
 
     const staying = tiles.filter((t) => matches(t, bento.dataset.filter ?? 'all') && matches(t, key));
     const arriving = tiles.filter((t) => !matches(t, bento.dataset.filter ?? 'all') && matches(t, key));
@@ -460,13 +508,13 @@ function initFilters(): void {
     for (const tile of arriving) fade(tile, 0, 1, 320);
 
     if (empty) empty.hidden = staying.length + arriving.length > 0;
+
+    bento.dispatchEvent(new CustomEvent('bentofilter'));
   };
 
-  for (const button of buttons) {
-    const key = button.dataset.filterSet;
-    if (!key) continue;
-    button.addEventListener('click', () => apply(key));
-  }
+  clear?.addEventListener('click', () => apply('all'));
+
+  return apply;
 }
 
 /* -- 9. Case router -------------------------------------------------------- */
@@ -742,10 +790,11 @@ initReveals();
 initVideos();
 initClock();
 void initWeather();
-initAxes();
 initGlosses();
 initLang();
-initFilters();
+// The chips drive the grid, so the grid's `apply` has to exist before the chips
+// are wired to it.
+initAxes(initFilters());
 initCases();
 // After `initCases`: both answer to `hashchange`, and on a hash that opens the
 // record the case router runs first to close whatever case was open and restore

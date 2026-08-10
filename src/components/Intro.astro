@@ -152,18 +152,56 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
       </div>
 
       {/* Where, under what the work is. Not a `bio` paragraph: those run through
-          `parseGloss`, which only ever emits text — it has no notion of a link. */}
-      <div class="col-prose enter flex flex-col gap-1 text-muted" style="--i:4">
+          `parseGloss`, which only ever emits text — it has no notion of a link.
+
+          Boxed, because the two rows are one thought: the line says where the
+          work is now, the link opens where it has been. Two rows and no
+          caption — the copy names its own subject ("Ahora en…"), so a label
+          over it would say the word twice and cost the pinned column a row. */}
+      <section class="now enter flex flex-col gap-2 text-muted" style="--i:4">
         {
           languages.map((lang) => (
-            <p lang={lang} data-i18n={lang} class="prose-tight">
+            <p lang={lang} data-i18n={lang} class="now-line prose-tight">
+              {/* Decorative, and unlabelled on purpose: the sentence it heads
+                  already opens with "Ahora", so a screen reader announcing the
+                  dot would say it twice. */}
+              <span class="dot" aria-hidden="true" />
               {experienceParts[lang][0]}
+              {/* No marker swipe on this one, unlike the same link used to
+                  carry. The swipe bleeds 0.26em past the word on each side —
+                  that is what makes it read as drawn by hand rather than as a
+                  background — and here the word before it is "en", one space
+                  away, so the left bleed lands on it and the two collide.
+                  The rule the bio already follows says the same thing from the
+                  other end: one swipe per column, and the bio has it. */}
               <a class="link-em" href={company.href} target="_blank" rel="noreferrer noopener">
                 {company.name}
                 <ExternalArrow />
-                <Doodle name="highlight" class="doodle-enter doodle-wipe" />
               </a>
-              {experienceParts[lang][1]}
+              {/* Same `[term](note)` markup the bio uses, run through the same
+                  parser — but the marked term here is the whole role title,
+                  four words long, where a bio gloss is one. `.gloss` alone
+                  won't do: it's an inline-block button, atomic on its line,
+                  and four words in the pinned 19rem column would just run
+                  off the edge. `.gloss-role` renders it `display: inline`
+                  instead, so the title wraps like ordinary text, and its
+                  note is a sibling rather than a child — an inline box that
+                  wraps has no single box left to hang an absolutely
+                  positioned child off, so the note anchors to the paragraph
+                  (`.now p`, set `position: relative` for exactly this) and
+                  sits under the whole line instead of under one word. */}
+              {parseGloss(experienceParts[lang][1]).map((token) =>
+                token.note ? (
+                  <>
+                    <button type="button" class="gloss gloss-role" data-gloss>
+                      {token.text}
+                    </button>
+                    <span class="gloss-note">{token.note}</span>
+                  </>
+                ) : (
+                  token.text
+                ),
+              )}
             </p>
           ))
         }
@@ -188,7 +226,7 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
               stroke-linejoin="round"></path>
           </svg>
         </a>
-      </div>
+      </section>
     </div>
 
       {/* Stays in the bio view rather than moving to the footer: the record has

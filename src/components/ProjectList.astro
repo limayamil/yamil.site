@@ -2,19 +2,24 @@
 /**
  * The right-hand column, which has two states and one URL.
  *
- *   index  — the filter row plus the bento grid
+ *   index  — the bento grid
  *   case   — one project's detail, opened in place
  *
  * Both are in the HTML at once and `motion.ts` swaps `data-view` between them,
  * driven by the `#caso/<slug>` hash. No routing, no fetch, no client-side
  * template: the grid and all nine cases are rendered at build time, and the
  * whole interaction is an attribute plus a `hidden` flag.
+ *
+ * There is no filter row here: the capability chips in the left column *are*
+ * the filter, so the axes are named once on the page instead of twice. What is
+ * left on this side is the receipt — which axis is on, and the way out of it —
+ * because the control that set it is in the other column and may well be off
+ * screen by the time someone wants it back.
  */
 import { getCollection } from 'astro:content';
 import Bilingual from './Bilingual.astro';
 import ProjectCard from './ProjectCard.astro';
 import ProjectDetail from './ProjectDetail.astro';
-import ProjectFilters from './ProjectFilters.astro';
 
 const projects = (await getCollection('projects'))
   .filter((entry) => entry.data.featured)
@@ -26,7 +31,25 @@ const projects = (await getCollection('projects'))
     <Bilingual es="Trabajos seleccionados" en="Selected work" />
   </h2>
 
-  <ProjectFilters projects={projects} />
+  {/* Hidden until an axis is on. `role="status"` so pressing a chip in the
+      other column is announced, and not only shown. */}
+  <div class="filter-bar" data-filter-bar hidden>
+    <p class="filter-active" role="status">
+      <Bilingual es="Filtrando por" en="Filtering by" />{' '}
+      <strong data-filter-name></strong>
+    </p>
+    <button type="button" class="filter-clear" data-filter-clear>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path
+          d="M3 3 9 9M9 3 3 9"
+          stroke="currentColor"
+          stroke-width="1.1"
+          stroke-linecap="round"
+          stroke-linejoin="round"></path>
+      </svg>
+      <Bilingual es="Borrar filtros" en="Clear filters" />
+    </button>
+  </div>
 
   <div class="bento" data-bento data-filter="all">
     {
