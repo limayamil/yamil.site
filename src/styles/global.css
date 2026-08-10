@@ -1063,13 +1063,6 @@ html[data-lang='es'] [data-i18n='en'] {
   font-size: 0.8125rem;
 }
 
-/* The record's legend chips carry a count, which is a third child in a grid
-   `.chip` declares two columns for — so it fell to an implicit second row and
-   sat under the label. It gets its own track. */
-.track-chip {
-  grid-template-columns: auto auto auto;
-}
-
 .chip:hover,
 .chip:focus-visible,
 .chip.is-active,
@@ -1346,39 +1339,6 @@ html[data-lang='es'] [data-i18n='en'] {
   margin-top: 0.125rem;
 }
 
-.track-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.track-legend ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-/* Same construction as `.axis-hint` in the capability panel, and that rhyme is
-   the point: it is the same instruction about the same three disciplines, so it
-   is set in the same hand with the same arrow reaching back up at them. */
-.track-hint {
-  position: relative;
-  width: max-content;
-  max-width: 100%;
-  /* On top of the legend's own `gap` — the arrow is drawn into the space
-     between the note and the chips, so that space is a measured number rather
-     than the column's default rhythm. */
-  margin-top: 0.625rem;
-  padding-left: 2.375rem;
-}
-
-.track-hint .doodle {
-  bottom: 0.3em;
-  left: 0.15rem;
-  width: 1.75rem;
-  height: 2.25rem;
-}
-
 .track-line {
   position: relative;
   display: flex;
@@ -1496,46 +1456,6 @@ html[data-lang='es'] [data-i18n='en'] {
   margin-top: 0.25rem;
   color: var(--color-muted);
   font-size: 0.8125rem;
-}
-
-/* How long it lasted, as a share of the longest run. `--span` is computed at
-   build time in `Track.astro`; the animation and the resting state both read
-   the same variable, so a stopped animation lands exactly on the drawn value. */
-.track-span {
-  display: block;
-  margin-top: 0.625rem;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--color-line);
-}
-
-.track-span-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-primary);
-  transform: scaleX(var(--span, 0));
-  transform-origin: left;
-  animation: span-grow 0.9s var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 45ms + 320ms);
-}
-
-@keyframes span-grow {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(var(--span, 0));
-  }
-}
-
-/* The legend, dimming rather than filtering — see the section note above. Four
-   lines and no lookup table, for the same reason the bento's version is four
-   lines: an entry's `axis` is a capability's `icon`. */
-.track-line[data-highlight='engineering'] .track-entry:not([data-axis='engineering']),
-.track-line[data-highlight='motion'] .track-entry:not([data-axis='motion']),
-.track-line[data-highlight='ops'] .track-entry:not([data-axis='ops']) {
-  opacity: 0.26;
 }
 
 .track-out {
@@ -2310,16 +2230,9 @@ html[data-lang='es'] [data-i18n='en'] {
     transform: none;
   }
 
-  /* The rail and the duration bars resolve to drawn. Both already carry their
-     final value as a base style, so killing the animation is enough — the bar
-     lands on `scaleX(var(--span))` and still says how long the job lasted,
-     which is information, not decoration. */
+  /* The rail resolves to fully drawn rather than mid-grow. */
   .track-line::before {
     transform: none;
-    animation: none;
-  }
-
-  .track-span-fill {
     animation: none;
   }
 

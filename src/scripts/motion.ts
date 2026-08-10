@@ -14,7 +14,6 @@
  *   9. route `#caso/<slug>` between the grid and one open case
  *  10. route `#recorrido` between the bio and the track record — the same
  *      two-views-one-URL trick as 9, on the other column
- *  11. highlight one discipline in that record from its legend
  *
  * Nothing here reads layout during scroll, and every animated property is
  * transform/opacity, so the compositor handles the frames on its own. The one
@@ -737,45 +736,6 @@ function initTrack(): void {
   route(true);
 }
 
-/* -- 11. Track record legend ----------------------------------------------- */
-
-/**
- * Picking a discipline dims the entries that are not it — the same
- * `data-highlight` attribute the bento answers to, and the same shared key
- * (a capability's `icon` is an entry's `axis`) that makes it four lines of CSS.
- *
- * Click and not hover, unlike the bento's version: this list is fourteen rows
- * long and the legend sits at the top of it, so a hover-driven highlight would
- * flicker every time a pointer crossed the chips on its way down the page. A
- * click also means the control works identically under a finger. Clicking the
- * active chip clears it.
- */
-function initTrackLegend(): void {
-  const legend = document.querySelector<HTMLElement>('[data-track-legend]');
-  const line = document.querySelector<HTMLElement>('[data-track-line]');
-  if (!legend || !line) return;
-
-  const buttons = Array.from(legend.querySelectorAll<HTMLElement>('[data-track-axis]'));
-  if (buttons.length === 0) return;
-
-  const apply = (key: string | null) => {
-    if (key) line.dataset.highlight = key;
-    else delete line.dataset.highlight;
-
-    for (const button of buttons) {
-      button.setAttribute('aria-pressed', String(button.dataset.trackAxis === key));
-    }
-  };
-
-  for (const button of buttons) {
-    const key = button.dataset.trackAxis;
-    if (!key) continue;
-    button.addEventListener('click', () => {
-      apply(line.dataset.highlight === key ? null : key);
-    });
-  }
-}
-
 /* -- boot ----------------------------------------------------------------- */
 
 initReveals();
@@ -791,4 +751,3 @@ initCases();
 // record the case router runs first to close whatever case was open and restore
 // its scroll position, so the track's own positioning gets the last word.
 initTrack();
-initTrackLegend();

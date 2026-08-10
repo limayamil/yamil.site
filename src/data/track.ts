@@ -40,8 +40,6 @@ export interface TrackEntry {
 export interface Track {
   title: Localized;
   lead: Localized;
-  /** The margin note over the legend, in the annotation hand. */
-  legendNote: Localized;
   /**
    * The year the run starts, stated rather than derived from `min(start)`.
    * The 2006 internship is three months, four years before anything else, and
@@ -62,11 +60,6 @@ export const track: Track = {
   lead: {
     es: 'Empecé cortando video y terminé automatizando el trabajo que lo rodea. Cada puesto de acá abajo sumó una capa: primero el movimiento, después el código, después el sistema que sostiene a los dos.',
     en: 'I started cutting video and ended up automating the work around it. Every job below added a layer: motion first, then code, then the system that holds both up.',
-  },
-
-  legendNote: {
-    es: 'elegí una disciplina',
-    en: 'pick a discipline',
   },
 
   since: 2010,

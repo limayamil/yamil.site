@@ -23,7 +23,7 @@ This is a single-page Astro portfolio site (no client-side framework — Tailwin
 - [src/data/projects.json](src/data/projects.json) — project entries, loaded as an Astro content collection via `file()` loader and validated against the Zod schema in [src/content.config.ts](src/content.config.ts). Consumed by [ProjectList.astro](src/components/ProjectList.astro) (filters `featured`, sorts by `order`), rendered as a grid tile by [ProjectCard.astro](src/components/ProjectCard.astro) and as a case page by [ProjectDetail.astro](src/components/ProjectDetail.astro). Every visible string is a `{ es, en }` pair, same as `profile.ts`; JSON takes no comments, so the field-by-field reasoning lives in the schema.
 
 Three fields in a project are enums, and a typo in any of them **fails the build** — the same posture as an unknown `toolIcons` key:
-- `axis` — `engineering | motion | ops`. This is the same key as a capability's `icon` in `profile.ts` **and as a track entry's `axis` in `track.ts`**, and that shared key is the whole join across all three: the filter row is built from `profile.capabilities`, hovering an axis on the left dims the work on the right that is not it, and the record's legend dims the roles that are not it. Renaming one without the others silently empties a filter.
+- `axis` — `engineering | motion | ops`. This is the same key as a capability's `icon` in `profile.ts` **and as a track entry's `axis` in `track.ts`**: the filter row is built from `profile.capabilities`, and hovering an axis on the left dims the work on the right that is not it. A track entry carries its `axis` too — it drives the glyph in that entry's node and its sr-only label — but nothing on the record currently filters or highlights by it. Renaming one without the others still silently breaks the bento's filter.
 - `tier` — `primary | secondary | tertiary`. Size in the bento, and the only signal of importance the design has.
 - `shape` — `horizontal | vertical`, read only when `tier` is `secondary`.
 
@@ -69,7 +69,6 @@ A `tools` entry in `profile.ts` is a **key into `toolIcons`**, not a display nam
 8. Filter the bento by axis, re-packing the grid with a FLIP.
 9. Route `#caso/<slug>` between the grid and one open case.
 10. Route `#recorrido` between the bio and the track record — same two-views-one-URL trick as 9, on the other column. Unlike 9 it animates the *outgoing* view: nothing morphs between two blocks of prose, so the swap carries its own direction (bio leaves leftward, record arrives from the right).
-11. Highlight one discipline in that record from its legend — click rather than hover, since the list is fourteen rows long and a pointer crossing the chips on its way down would make a hover-driven highlight flicker.
 
 State is always expressed as a `data-*` attribute or a class that CSS reacts to — never inline styles. The FLIP helpers hold that line by using `element.animate` (the Web Animations API never touches the `style` attribute) rather than writing transforms and cleaning up after themselves. Every animated property driven by `motion.ts` is transform/opacity only, so the compositor handles frames without layout reads during scroll; the FLIPs are the one place layout *is* read, twice in the same frame, in response to a click — never during a scroll. `<noscript>` in `Base.astro` force-shows everything if JS is unavailable.
 

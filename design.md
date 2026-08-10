@@ -186,7 +186,7 @@ palabras no hace falta un eje de peso.
 
 ## 4. Inventario de anotaciones
 
-Siete gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
+Seis gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 
 | # | Dónde | Marca | Se dispara con |
 |---|---|---|---|
@@ -196,19 +196,14 @@ Siete gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 | 4 | Links de contacto — [Links.astro](src/components/Links.astro) | Subrayado en primario (CSS puro) | hover / focus |
 | 5 | Ranura de reposo del panel de ejes — [Axes.astro](src/components/Axes.astro) | Flecha hacia arriba (`arrowUp`) + nota manuscrita | `.enter` de la columna |
 | 6 | El empleador en la línea de experiencia (`.link-em`) | Resaltador (`highlight`) + subrayado permanente en primario | `.enter` del bloque de experiencia (`--i:4`) |
-| 7 | Debajo de la leyenda del recorrido — [Track.astro](src/components/Track.astro) | Flecha hacia arriba (`arrowUp`) + nota manuscrita | `.track-enter` de la leyenda (`--i:3`) |
 
-El texto de las notas #2, #5 y #7 es dato, no markup: `profile.contactNote`,
-`profile.restingNote` en [profile.ts](src/data/profile.ts) y `track.legendNote`
-en [track.ts](src/data/track.ts).
+El texto de las notas #2 y #5 es dato, no markup: `profile.contactNote` y
+`profile.restingNote` en [profile.ts](src/data/profile.ts).
 
-La #7 es deliberadamente la misma construcción que la #5 — nota manuscrita
-debajo, flecha subiendo a los chips — porque es la misma instrucción sobre las
-mismas tres disciplinas, vista desde la otra pantalla. La rima es el punto: si
-se dibujara distinto, leería como otro control. La flecha es más corta (2.25rem
-contra 3.5rem) porque acá el hueco que tiene que cruzar es el `gap` de la
-leyenda, no el `margin-top` de un panel; la punta cae exactamente sobre el borde
-inferior de la fila de chips.
+El recorrido ([Track.astro](src/components/Track.astro), §9) tuvo una séptima
+anotación — la misma flecha-más-nota que la #5, apuntando a una leyenda de tres
+chips — y se sacó junto con la leyenda que anotaba. Si esa leyenda vuelve, la
+marca es la misma: reusar `arrowUp`, no dibujar una nueva.
 
 La #6 es la única que rompe la regla de "un solo resaltador por columna": el
 bio ya trae el suyo en #3. Es una decisión explícita — el nombre del empleador
@@ -603,25 +598,17 @@ permanente y no se resuelve por más que scrollees. Con eso, scrolleado hasta el
 fondo, el link a LinkedIn cae exactamente donde arranca la rampa: la zona que se
 desvanece no tiene más que aire.
 
-### Tres cosas cargan sentido, no decoración
+### El nodo lleva el glifo de la disciplina
 
-1. **El nodo lleva el glifo de la disciplina** — la misma clave que usan el panel
-   de capacidades y los filtros del bento (`Capability.icon` = `TrackEntry.axis` =
-   `axis` en projects.json). Un valor fuera de la unión rompe el build.
-2. **La regla debajo de cada entrada es su duración, a escala**: `scaleX(meses /
-   más largo)`, con el más largo hoy en 51 meses. Es lo que hace que cuatro años
-   y tres meses de reemplazo no se lean igual. Puro transform, así que anima en
-   el compositor.
-3. **La leyenda atenúa, no filtra.** Es al revés del bento, y a propósito: lo que
-   el recorrido tiene para mostrar es *dónde se agrupa* una disciplina en quince
-   años, y una lista que cerró sus propios huecos ya tiró esa información. Motion
-   ocupa 2010–2022, engineering 2019–2024, ops arranca en 2024 — eso sólo se ve
-   si los huecos siguen ahí.
-
-Es click y no hover, otra vez al revés del bento: la lista tiene catorce filas y
-la leyenda está arriba de todo, así que un highlight por hover parpadearía cada
-vez que el puntero cruza los chips de camino hacia abajo. Con click el control es
-el mismo con un dedo. Volver a tocar el chip activo lo apaga.
+Misma clave que usan el panel de capacidades y los filtros del bento
+(`Capability.icon` = `TrackEntry.axis` = `axis` en projects.json). Un valor
+fuera de la unión rompe el build. Sólo llega como el glifo del nodo y una
+etiqueta `sr-only`; hoy nada en esta vista filtra o resalta por él — se probaron
+una leyenda de tres chips que atenuaba las filas que no compartían disciplina y
+una regla por entrada con la duración a escala, y las dos se sacaron a pedido
+antes de llegar a producción. La clave se dejó puesta porque es gratis y es la
+que ata las tres pantallas entre sí; si alguna vuelve a necesitar filtrar o
+resaltar el recorrido, el dato ya está ahí.
 
 ### La entrada es lateral, y por qué no es `[data-reveal]`
 
@@ -646,8 +633,8 @@ frame que sólo llega cuando alguien mira.
 
 | Qué | Antes | Ahora |
 |---|---|---|
-| `index.html` | 90.5KB → 20.1KB gzip | 116.4KB → **23.1KB gzip** |
-| `motion.ts` compilado | 7.8KB → 2.8KB gzip | 9.6KB → **3.3KB gzip** |
+| `index.html` | 90.5KB → 20.1KB gzip | 112.2KB → **22.8KB gzip** |
+| `motion.ts` compilado | 7.8KB → 2.8KB gzip | 9.1KB → **3.2KB gzip** |
 
 Cero dependencias nuevas: los glifos ya estaban en `Icon.astro`, la flecha ya
 estaba en `doodles.ts`, y las fechas se arman con dos arrays de doce strings en

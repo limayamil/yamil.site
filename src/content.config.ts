@@ -69,7 +69,7 @@ const projects = defineCollection({
     shape: z.enum(['horizontal', 'vertical']).default('horizontal'),
     client: z.string().optional(),
     year: z.number(),
-    /** Disciplines listed in the case detail, e.g. ['Design Engineering']. */
+    /** Disciplines listed in the case detail, e.g. ['Front-end Development']. */
     roles: z.array(localized),
     /** Static frame. Always required — it is also the video's poster. */
     poster: z.string(),

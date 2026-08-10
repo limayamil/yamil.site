@@ -123,7 +123,7 @@ export const profile: Profile = {
   capabilities: [
     {
       icon: 'engineering',
-      title: 'Design Engineering',
+      title: 'Front-end Development',
       tag: { es: 'Del Figma al deploy', en: 'From Figma to deploy' },
       line: {
         es: 'No entrego pantallas. Entrego decisiones que ya no hay que volver a tomar.',
@@ -180,8 +180,8 @@ export const profile: Profile = {
 
 export const meta = {
   title: {
-    es: `${profile.name.es} — Design Engineering, Motion y Marketing Ops`,
-    en: `${profile.name.en} — Design Engineering, Motion and Marketing Ops`,
+    es: `${profile.name.es} — Front-end Development, Motion y Marketing Ops`,
+    en: `${profile.name.en} — Front-end Development, Motion and Marketing Ops`,
   },
   description: {
     es: 'Diseño, construyo y automatizo: interfaces, motion y operaciones de marketing que le sacan el trabajo manual del medio a los equipos.',

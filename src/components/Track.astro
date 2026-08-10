@@ -8,30 +8,20 @@
  * second route. `.intro[data-view]` picks a view exactly the way
  * `.projects[data-view]` does.
  *
- * Three things here are not free-hand:
+ * The one thing here that is not free-hand: **entries stagger with `--i`, not
+ * `[data-reveal]`.** A reveal observer never fires for an element that has been
+ * inside `display: none` since load — the same bug the case router hit from the
+ * other direction — so the entrance is a CSS animation, which restarts on its
+ * own every time the view is shown.
  *
- *   - **The legend is the axis key, seen from the third side.** The chips are
- *     built from `profile.capabilities`, so they cannot drift from the "En qué
- *     soy bueno" list or from the bento's filter row — an entry's `axis` is a
- *     capability's `icon`. Picking one *dims* the rest rather than removing
- *     them, which is the opposite of what the bento does and the right call
- *     here: the point of the timeline is where a discipline clusters in the
- *     fifteen years, and you cannot see a cluster in a list that closed the
- *     gaps around it.
- *   - **The span bar is the duration, to scale.** Every entry's rule is
- *     `scaleX(months / longest)`, which is what makes a four-year stint and a
- *     three-month cover read differently at a glance instead of as two
- *     identical rows. Pure transform, so it animates on the compositor.
- *   - **Entries stagger with `--i`, not `[data-reveal]`.** A reveal observer
- *     never fires for an element that has been inside `display: none` since
- *     load — the same bug the case router hit from the other direction — so the
- *     entrance is a CSS animation, which restarts on its own every time the
- *     view is shown.
+ * Each node still carries the entry's `axis` (an sr-only label plus the glyph
+ * from `Icon.astro`) — the same key a capability's `icon` and a project's
+ * `axis` use, kept for whoever reaches for it next, even though nothing on this
+ * view currently filters or highlights by it.
  */
 import { profile } from '../data/profile';
 import { track } from '../data/track';
 import Bilingual from './Bilingual.astro';
-import Doodle from './Doodle.astro';
 import ExternalArrow from './ExternalArrow.astro';
 import Icon from './Icon.astro';
 
@@ -79,12 +69,8 @@ const entries = [...track.entries].sort(
   (a, b) => b.start.localeCompare(a.start) || span(b.start, b.end) - span(a.start, a.end),
 );
 
-const longest = Math.max(...entries.map((entry) => span(entry.start, entry.end)));
-
 const axisTitle = (axis: string) =>
   profile.capabilities.find((capability) => capability.icon === axis)?.title ?? axis;
-
-const countFor = (axis: string) => entries.filter((entry) => entry.axis === axis).length;
 
 const stats = [
   { value: String(now.getFullYear() - track.since), label: { es: 'años', en: 'years' } },
@@ -134,43 +120,12 @@ const stats = [
     }
   </ul>
 
-  {/* The legend. Buttons, not links: they change what is emphasised on this
-      view and navigate nowhere. `aria-pressed` carries both the look and the
-      announcement, the same single source `.filter` and `.lang-option` use. */}
-  <div class="track-legend track-enter" style="--i:3" data-track-legend>
-    <ul>
-      {
-        profile.capabilities.map((capability) => (
-          <li>
-            <button
-              type="button"
-              class="axis chip track-chip"
-              data-track-axis={capability.icon}
-              aria-pressed="false"
-            >
-              <Icon name={capability.icon} class="axis-icon" />
-              <span class="axis-title">{capability.title}</span>
-              <span class="filter-count">{countFor(capability.icon)}</span>
-            </button>
-          </li>
-        ))
-      }
-    </ul>
-
-    {/* Aria-hidden: it describes a hover/tap affordance for three buttons that
-        are right there and already labelled. Read aloud it is just noise. */}
-    <p class="track-hint hand" aria-hidden="true">
-      <Doodle name="arrowUp" class="doodle-enter" />
-      <Bilingual es={track.legendNote.es} en={track.legendNote.en} />
-    </p>
-  </div>
-
   <ol class="track-line" data-track-line>
     {
       entries.map((entry, index) => (
         <li
           class="track-entry track-enter"
-          style={`--i:${index + 4}; --span:${(span(entry.start, entry.end) / longest).toFixed(3)}`}
+          style={`--i:${index + 4}`}
           data-axis={entry.axis}
           {...(entry.end === null ? { 'data-current': '' } : {})}
         >
@@ -198,13 +153,6 @@ const stats = [
           <p class="track-note prose-tight">
             <Bilingual es={entry.note.es} en={entry.note.en} />
           </p>
-
-          {/* How long it lasted, drawn to scale against the longest run.
-              `aria-hidden` because the dates two lines up already say it, and
-              in words rather than in pixels. */}
-          <span class="track-span" aria-hidden="true">
-            <span class="track-span-fill" />
-          </span>
 
           {/* The discipline, for a screen reader only: sighted readers get it
               from the glyph in the node, and repeating it as visible text on
