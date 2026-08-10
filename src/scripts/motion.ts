@@ -226,8 +226,10 @@ function initClock(): void {
 /* -- 4. Weather ------------------------------------------------------------ */
 
 // WMO weather codes (Open-Meteo) collapsed to one icon each. Not exhaustive by
-// design — the footer wants a glance, not a forecast.
-const WEATHER_ICONS: Record<number, string> = {
+// design — the footer wants a glance, not a forecast. Only the clear-sky codes
+// swap for a night variant; past "partly cloudy" the cloud already reads fine
+// in the dark, and a moon-behind-cloud glyph is not worth the added lookup.
+const WEATHER_ICONS_DAY: Record<number, string> = {
   0: '☀️',
   1: '🌤️',
   2: '⛅',
@@ -258,6 +260,12 @@ const WEATHER_ICONS: Record<number, string> = {
   99: '⛈️',
 };
 
+const WEATHER_ICONS_NIGHT: Record<number, string> = {
+  ...WEATHER_ICONS_DAY,
+  0: '🌕',
+  1: '🌙',
+};
+
 async function initWeather(): Promise<void> {
   const node = document.querySelector<HTMLElement>('[data-weather]');
   const lat = node?.dataset.weatherLat;
@@ -266,7 +274,7 @@ async function initWeather(): Promise<void> {
   const temp = node?.querySelector<HTMLElement>('[data-weather-temp]');
   if (!node || !lat || !lon || !icon || !temp) return;
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day`;
 
   try {
     const response = await fetch(url);
@@ -275,7 +283,8 @@ async function initWeather(): Promise<void> {
     const current = data?.current;
     if (typeof current?.temperature_2m !== 'number') return;
 
-    icon.textContent = WEATHER_ICONS[current.weather_code] ?? '🌡️';
+    const icons = current.is_day === 0 ? WEATHER_ICONS_NIGHT : WEATHER_ICONS_DAY;
+    icon.textContent = icons[current.weather_code] ?? '🌡️';
     temp.textContent = `${Math.round(current.temperature_2m)}°C`;
     node.style.display = 'flex';
   } catch {
