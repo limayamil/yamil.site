@@ -191,14 +191,24 @@ Siete gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 | # | Dónde | Marca | Se dispara con |
 |---|---|---|---|
 | 1 | `h1`, el apellido — [Intro.astro](src/components/Intro.astro) | Óvalo (`oval`) | `.enter` del `h1` (`--i:1`) |
-| 2 | A la derecha de los links de contacto | Flecha (`arrowLeft`) + nota manuscrita | `.enter` del bloque inferior (`--i:6`) |
+| 2 | A la derecha de los links de contacto | Flecha (`arrowLeft`) + nota manuscrita | `.enter` de `.intro-foot` (`--i:7`) |
 | 3 | Primer término glosado del bio | Resaltador (`highlight`) | `.enter` del bio (`--i:3`) |
 | 4 | Links de contacto — [Links.astro](src/components/Links.astro) | Subrayado en primario (CSS puro) | hover / focus |
 | 5 | Ranura de reposo del panel de ejes — [Axes.astro](src/components/Axes.astro) | Flecha hacia arriba (`arrowUp`) + nota manuscrita | `.enter` de la columna |
 | 6 | El empleador en la línea de experiencia (`.link-em`) | Resaltador (`highlight`) + subrayado permanente en primario | `.enter` del bloque de experiencia (`--i:4`) |
+| 7 | Debajo de la leyenda del recorrido — [Track.astro](src/components/Track.astro) | Flecha hacia arriba (`arrowUp`) + nota manuscrita | `.track-enter` de la leyenda (`--i:3`) |
 
-El texto de las notas #2 y #5 es dato, no markup: `profile.contactNote` y
-`profile.restingNote` en [profile.ts](src/data/profile.ts).
+El texto de las notas #2, #5 y #7 es dato, no markup: `profile.contactNote`,
+`profile.restingNote` en [profile.ts](src/data/profile.ts) y `track.legendNote`
+en [track.ts](src/data/track.ts).
+
+La #7 es deliberadamente la misma construcción que la #5 — nota manuscrita
+debajo, flecha subiendo a los chips — porque es la misma instrucción sobre las
+mismas tres disciplinas, vista desde la otra pantalla. La rima es el punto: si
+se dibujara distinto, leería como otro control. La flecha es más corta (2.25rem
+contra 3.5rem) porque acá el hueco que tiene que cruzar es el `gap` de la
+leyenda, no el `margin-top` de un panel; la punta cae exactamente sobre el borde
+inferior de la fila de chips.
 
 La #6 es la única que rompe la regla de "un solo resaltador por columna": el
 bio ya trae el suyo en #3. Es una decisión explícita — el nombre del empleador
@@ -264,6 +274,20 @@ vez de sumarse. El estado activo lo siguen llevando el color y el chevron.
 
 `.intro` es `position: sticky; height: 100svh` arriba de 62rem. Todo lo que se
 agregue tiene que entrar en un viewport.
+
+> **Qué cubre este presupuesto desde que existe el recorrido (§9).** La columna
+> quedó partida en dos: `.intro-views` (las dos vistas) y `.intro-foot`
+> (contacto + reloj), que está afuera de las vistas y no se mueve nunca. El
+> presupuesto es de `.intro-views` en **vista bio**, y hoy sobra: sacar contacto
+> del flujo del bio devolvió ~104px, así que en el tramo más angosto
+> (992x1080) el bio cierra a 879px contra un footer que arranca en 911 — 32px de
+> aire, que es exactamente el `gap` de la columna.
+>
+> La vista `track` no entra acá y nunca se pidió que entrara: scrollea adentro
+> de `.intro-views`. Por eso los tres umbrales de abajo están scopeados a
+> `[data-view='bio']` — y tienen que estarlo **los tres o ninguno**, porque a
+> (0,2,0) un solo umbral scopeado le gana a los otros dos sin importar el orden
+> y los dos que re-afirman sticky dejarían de poder hacerlo.
 
 La altura que necesita **depende del ancho**: la columna es `max(19rem, 30vw)`,
 así que una pantalla más ancha envuelve la copia en menos líneas. Por eso el
@@ -516,3 +540,117 @@ real y está acá para que se vea:
 Si eso llegara a molestar, la palanca es sacar los casos del HTML inicial, no
 recortar la copia — pero eso trae fetch y plantillas en cliente, que es
 exactamente lo que este sitio no tiene.
+
+---
+
+## 9. El recorrido
+
+La segunda vista de la columna izquierda, en `#recorrido`. Es el mismo truco que
+el bento hace con `#caso/<slug>`, del otro lado de la página: las dos vistas
+viajan en el HTML, `data-view` elige una, y un solo `hashchange` es toda la
+ruta — así el botón de atrás, un link compartido y un ctrl-click entran por la
+misma puerta.
+
+Catorce puestos, ocho empresas, desde 2010. El dato está en
+[track.ts](src/data/track.ts); el orden lo resuelve el build (`start`
+descendente, empate por duración) así que el archivo se puede escribir en
+cualquier orden.
+
+### La columna quedó en tres partes
+
+```
+.intro            sticky, 100svh, flex column
+  .intro-views    flex:1 — las dos vistas; scrollea sólo en track
+  .intro-foot     contacto + reloj — afuera de las vistas, no se mueve nunca
+```
+
+Contacto estaba al fondo del bio, así que abrir el recorrido se lo llevaba de la
+pantalla. Sacarlo de las vistas es lo que lo vuelve constante: durante el swap ni
+siquiera se anima, porque es hermano del elemento que sale y no hijo.
+
+`min-height: 0` en `.intro-views` no es opcional. Sin eso un flex item se niega a
+achicarse abajo de su contenido, la caja crece más allá de los 100svh y el footer
+termina empujado fuera de la pantalla — que es exactamente lo que esta división
+existe para evitar.
+
+**El scroll interno está scopeado a `[data-view='track']`.** `overflow` no sólo
+scrollea: recorta. Y el bio tiene una cosa que legítimamente se sale de su caja,
+`.gloss-note`, a la que se le permite ser más ancha que la columna que la ancla
+(§ nota en `global.css`). El bio además ya entra en un viewport por diseño, así
+que no gana nada acá y perdería el popover.
+
+### Las dos correcciones del borde
+
+**`overflow-x: clip`, no `visible`.** Un eje en `visible` al lado de uno que
+scrollea computa a `auto`, y eso era una barra horizontal que aparecía durante
+toda la transición: `enter-left` arranca cada entrada 22px a la derecha de donde
+cae, y por lo que dura el stagger eso es overflow real (medido: 26px de pico).
+Recortarlo además se lee mejor — las entradas salen de atrás del borde de la
+columna en vez de empujarlo.
+
+**El final se disuelve, no se corta.** `.intro-views` lleva un
+`mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent)`
+con `--fade: 4rem`, así el recorrido se desvanece antes de chocar contra
+`.intro-foot` en vez de cortarse a mitad de una entrada.
+
+Es máscara y no un degradado encima, y la razón es §7: abajo de todo esto hay un
+shader moviéndose. Un scrim falso en `--color-bg` sería una banda oscura tapando
+los rayos; la máscara los deja pasar.
+
+`.track` lleva `padding-bottom: var(--fade)` — **el mismo número, y tiene que
+serlo**. Sin eso la última entrada vive adentro del degradado de forma
+permanente y no se resuelve por más que scrollees. Con eso, scrolleado hasta el
+fondo, el link a LinkedIn cae exactamente donde arranca la rampa: la zona que se
+desvanece no tiene más que aire.
+
+### Tres cosas cargan sentido, no decoración
+
+1. **El nodo lleva el glifo de la disciplina** — la misma clave que usan el panel
+   de capacidades y los filtros del bento (`Capability.icon` = `TrackEntry.axis` =
+   `axis` en projects.json). Un valor fuera de la unión rompe el build.
+2. **La regla debajo de cada entrada es su duración, a escala**: `scaleX(meses /
+   más largo)`, con el más largo hoy en 51 meses. Es lo que hace que cuatro años
+   y tres meses de reemplazo no se lean igual. Puro transform, así que anima en
+   el compositor.
+3. **La leyenda atenúa, no filtra.** Es al revés del bento, y a propósito: lo que
+   el recorrido tiene para mostrar es *dónde se agrupa* una disciplina en quince
+   años, y una lista que cerró sus propios huecos ya tiró esa información. Motion
+   ocupa 2010–2022, engineering 2019–2024, ops arranca en 2024 — eso sólo se ve
+   si los huecos siguen ahí.
+
+Es click y no hover, otra vez al revés del bento: la lista tiene catorce filas y
+la leyenda está arriba de todo, así que un highlight por hover parpadearía cada
+vez que el puntero cruza los chips de camino hacia abajo. Con click el control es
+el mismo con un dedo. Volver a tocar el chip activo lo apaga.
+
+### La entrada es lateral, y por qué no es `[data-reveal]`
+
+Las entradas salen de un contenedor en `display: none`, que es justo el caso que
+un IntersectionObserver no puede ver: nunca tuvieron caja para intersectar y no
+la consiguen de forma confiable al aparecer. Es el mismo bug que el router de
+casos tuvo desde el otro lado. Acá la entrada es una animación CSS (`enter-left`
++ `--i`), que reinicia sola cada vez que la vista se muestra.
+
+El sentido es lateral en vez de vertical porque esta vista llega *reemplazando* a
+la de al lado: el bio sale hacia la izquierda (WAAPI, 190ms) y el recorrido entra
+desde la derecha. Las dos mitades viajan para el mismo lado, que es lo que hace
+que se lea como un movimiento y no como dos elementos cruzándose.
+
+**La primera pasada es la excepción y se saltea la transición.** Un `#recorrido`
+compartido no tiene vista saliente — el bio nunca estuvo en pantalla — así que
+animar una es mentira, y además es un rehén: una pestaña que abre en segundo
+plano tiene las animaciones paradas en el frame cero, y el swap esperaría un
+frame que sólo llega cuando alguien mira.
+
+### Peso
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| `index.html` | 90.5KB → 20.1KB gzip | 116.4KB → **23.1KB gzip** |
+| `motion.ts` compilado | 7.8KB → 2.8KB gzip | 9.6KB → **3.3KB gzip** |
+
+Cero dependencias nuevas: los glifos ya estaban en `Icon.astro`, la flecha ya
+estaba en `doodles.ts`, y las fechas se arman con dos arrays de doce strings en
+vez de con `Intl` (ICU escribe los meses cortos en español con punto y deletrea
+septiembre como "sept", así que la columna cargaría dos anchos de etiqueta
+distintos sin motivo).

@@ -31,7 +31,7 @@ const toolNames = (tools: string[]) => tools.map((tool) => toolIcons[tool]?.titl
       {
         profile.capabilities.map((capability) => (
           <li>
-            <button type="button" class="axis" data-axis={capability.icon}>
+            <button type="button" class="axis chip" data-axis={capability.icon}>
               <Icon name={capability.icon} class="axis-icon" />
               <span class="axis-title">{capability.title}</span>
               <svg

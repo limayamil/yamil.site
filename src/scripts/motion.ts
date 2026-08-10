@@ -12,6 +12,9 @@
  *      clicks after that)
  *   8. filter the bento grid by axis, re-packing it with a FLIP
  *   9. route `#caso/<slug>` between the grid and one open case
+ *  10. route `#recorrido` between the bio and the track record — the same
+ *      two-views-one-URL trick as 9, on the other column
+ *  11. highlight one discipline in that record from its legend
  *
  * Nothing here reads layout during scroll, and every animated property is
  * transform/opacity, so the compositor handles the frames on its own. The one
@@ -66,6 +69,18 @@ function flip(nodes: HTMLElement[], mutate: () => void, duration = 520): void {
       { duration, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', composite: 'replace' },
     );
   }
+}
+
+/**
+ * Scroll instantly and report how far, so a rect measured before the jump can
+ * be corrected for it. Smooth scrolling here would slide the page underneath a
+ * morph and pull it off its target — the jump is what keeps the two in the same
+ * coordinate space.
+ */
+function jump(top: number): number {
+  const before = window.scrollY;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+  return window.scrollY - before;
 }
 
 /** Fade a node in place. Returns the animation so a caller can await it. */
@@ -505,18 +520,6 @@ function initCases(): void {
     );
   };
 
-  /**
-   * Scroll instantly and report how far, so a rect measured before the jump can
-   * be corrected for it. Smooth scrolling here would slide the page underneath
-   * the morph and pull it off its target — the jump is what keeps the two in
-   * the same coordinate space.
-   */
-  const jump = (top: number): number => {
-    const before = window.scrollY;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
-    return window.scrollY - before;
-  };
-
   const shift = (rect: DOMRect | null, delta: number) =>
     rect ? new DOMRect(rect.left, rect.top - delta, rect.width, rect.height) : null;
 
@@ -618,6 +621,161 @@ function initCases(): void {
   route();
 }
 
+/* -- 10. Track record router ----------------------------------------------- */
+
+/**
+ * `#recorrido` opens the left column's second view, the same way `#caso/<slug>`
+ * opens the right column's. One hash, one `hashchange`, no second route — so
+ * the back button, a shared link and a ctrl-click all arrive through the same
+ * door here too. The opener is a real anchor and its click is never
+ * intercepted; all this listens to is the hash.
+ *
+ * The one thing this does that the case router does not is animate the *outgoing*
+ * view. A case grows out of the tile it replaces, so the bento can simply
+ * vanish; here the two views are two blocks of prose in the same column and
+ * nothing morphs between them, so the swap has to carry a direction of its own:
+ * the view being left slides out the way we are heading and the incoming one
+ * arrives from the opposite edge (`enter-left`, in the stylesheet). Both halves
+ * travel the same way, which is what makes it read as one movement rather than
+ * as two elements crossing.
+ *
+ * Note that returning to the bio replays its whole load-in — the `.enter`
+ * stagger and the doodles drawing themselves. That is a consequence of hiding
+ * the view with `display: none` (which restarts CSS animations on the way back)
+ * and it is kept: the marks redrawing is the page annotating itself again, on
+ * the same beat it did the first time.
+ */
+function initTrack(): void {
+  const intro = document.querySelector<HTMLElement>('[data-intro]');
+  const bio = document.querySelector<HTMLElement>('[data-intro-bio]');
+  const track = document.querySelector<HTMLElement>('[data-track]');
+  if (!intro || !bio || !track) return;
+
+  const views = intro.querySelector<HTMLElement>('.intro-views');
+  const opener = document.querySelector<HTMLElement>('[data-track-open]');
+  const back = track.querySelector<HTMLElement>('[data-track-back]');
+
+  let open = false;
+  let bioScroll = 0;
+  let leaving: Animation | null = null;
+
+  const commit = (next: 'bio' | 'track') => {
+    intro.dataset.view = next;
+
+    if (next === 'track') {
+      // Above 62rem the record scrolls inside `.intro-views` rather than with
+      // the page, and that scrollport keeps its offset while the view is
+      // closed. Opening the record is opening it, not resuming it.
+      if (views) views.scrollTop = 0;
+      // Chase the column only when it is actually off the top — a reader near
+      // the top of the page does not need it moved under them.
+      const top = intro.getBoundingClientRect().top;
+      if (top < 0) jump(top + window.scrollY - 24);
+      back?.focus({ preventScroll: true });
+      return;
+    }
+
+    jump(bioScroll);
+    opener?.focus({ preventScroll: true });
+  };
+
+  const setView = (next: 'bio' | 'track', immediate = false) => {
+    if (open === (next === 'track')) return;
+    open = next === 'track';
+    if (open) bioScroll = window.scrollY;
+
+    // A toggle faster than the exit lands here with the outgoing view already
+    // cancelled and the DOM still on the view we are heading back to. There is
+    // nothing on screen to animate out, so just settle.
+    leaving?.cancel();
+    leaving = null;
+    if (immediate || reducedMotion.matches || intro.dataset.view === next) {
+      commit(next);
+      return;
+    }
+
+    const node = open ? bio : track;
+    const dx = open ? -26 : 26;
+    const exit = node.animate(
+      [
+        { opacity: 1, transform: 'none' },
+        { opacity: 0, transform: `translate3d(${dx}px, 0, 0)` },
+      ],
+      { duration: 190, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' },
+    );
+
+    leaving = exit;
+    exit.finished
+      .then(() => {
+        if (leaving !== exit) return;
+        leaving = null;
+        commit(next);
+      })
+      // `cancel()` rejects the promise. That path is handled above, by whoever
+      // cancelled it.
+      .catch(() => {});
+  };
+
+  const route = (immediate = false) =>
+    setView(window.location.hash === '#recorrido' ? 'track' : 'bio', immediate);
+
+  // Push rather than `history.back()`, for the same reason "Volver" on a case
+  // does: guessing what is behind us stops being reliable the moment anything
+  // else has touched the hash, and guessing wrong means leaving the site.
+  back?.addEventListener('click', () => {
+    history.pushState(null, '', window.location.pathname + window.location.search);
+    route();
+  });
+
+  window.addEventListener('hashchange', () => route());
+
+  // The first pass is the exception that has to skip the transition. A shared
+  // `#recorrido` link has no outgoing view to slide away — the bio has never
+  // been on screen — so animating one is both a lie and a hostage: a page that
+  // opens in a background tab has its animations parked at frame zero, and the
+  // swap would wait on a frame that only arrives when someone looks at it.
+  route(true);
+}
+
+/* -- 11. Track record legend ----------------------------------------------- */
+
+/**
+ * Picking a discipline dims the entries that are not it — the same
+ * `data-highlight` attribute the bento answers to, and the same shared key
+ * (a capability's `icon` is an entry's `axis`) that makes it four lines of CSS.
+ *
+ * Click and not hover, unlike the bento's version: this list is fourteen rows
+ * long and the legend sits at the top of it, so a hover-driven highlight would
+ * flicker every time a pointer crossed the chips on its way down the page. A
+ * click also means the control works identically under a finger. Clicking the
+ * active chip clears it.
+ */
+function initTrackLegend(): void {
+  const legend = document.querySelector<HTMLElement>('[data-track-legend]');
+  const line = document.querySelector<HTMLElement>('[data-track-line]');
+  if (!legend || !line) return;
+
+  const buttons = Array.from(legend.querySelectorAll<HTMLElement>('[data-track-axis]'));
+  if (buttons.length === 0) return;
+
+  const apply = (key: string | null) => {
+    if (key) line.dataset.highlight = key;
+    else delete line.dataset.highlight;
+
+    for (const button of buttons) {
+      button.setAttribute('aria-pressed', String(button.dataset.trackAxis === key));
+    }
+  };
+
+  for (const button of buttons) {
+    const key = button.dataset.trackAxis;
+    if (!key) continue;
+    button.addEventListener('click', () => {
+      apply(line.dataset.highlight === key ? null : key);
+    });
+  }
+}
+
 /* -- boot ----------------------------------------------------------------- */
 
 initReveals();
@@ -629,3 +787,8 @@ initGlosses();
 initLang();
 initFilters();
 initCases();
+// After `initCases`: both answer to `hashchange`, and on a hash that opens the
+// record the case router runs first to close whatever case was open and restore
+// its scroll position, so the track's own positioning gets the last word.
+initTrack();
+initTrackLegend();

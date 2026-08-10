@@ -8,14 +8,20 @@ import ExternalArrow from './ExternalArrow.astro';
 import Icon from './Icon.astro';
 import LangToggle from './LangToggle.astro';
 import Links from './Links.astro';
+import Track from './Track.astro';
 
 const languages = ['es', 'en'] as const;
 
-// The ring goes around the surname, not the whole name — a mark that circles
-// everything marks nothing. A single-word name simply gets no ring.
-const nameParts = profile.name.trim().split(/\s+/);
-const surname = nameParts.length > 1 ? nameParts.pop()! : null;
-const givenNames = nameParts.join(' ');
+// The ring goes around the last word, not the whole name — a mark that circles
+// everything marks nothing. A single-word name simply gets no ring. Split per
+// language: word order and word count both differ between es and en.
+const nameByLang = Object.fromEntries(
+  languages.map((lang) => {
+    const words = profile.name[lang].trim().split(/\s+/);
+    const last = words.length > 1 ? words.pop()! : null;
+    return [lang, { lead: words.join(' '), last }];
+  }),
+) as Record<(typeof languages)[number], { lead: string; last: string | null }>;
 
 /**
  * Which glossed term gets the highlighter: the first one in the column, per
@@ -52,103 +58,151 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
 }).format(new Date());
 ---
 
-<header class="intro">
-  <div class="flex flex-col gap-7">
-    <div class="enter flex items-start justify-between gap-4" style="--i:0">
-      {/* Decorative: the name it sits above already announces who this is. */}
-      <img
-        class="size-12 lg:size-14"
-        src="/logo.png"
-        alt=""
-        width="384"
-        height="384"
-        loading="eager"
-        decoding="sync"
-        fetchpriority="high"
-      />
-      <LangToggle />
-    </div>
+{/*
+  Two states and one URL, the same shape the work column has:
 
-    <div class="flex flex-col gap-3">
-      <h1 class="display enter text-[clamp(2.6rem,4.4vw,3.9rem)]" style="--i:1">
-        {givenNames}{surname && ' '}{
-          surname && (
-            <span class="mark">
-              {surname}
-              <Doodle name="oval" class="doodle-enter" />
-            </span>
-          )
+    bio    — who this is (the default)
+    track  — the full record, opened by `#recorrido`
+
+  Both ship in the HTML and `data-view` picks one, exactly the way
+  `.projects[data-view]` swaps the bento for a case.
+
+  The column is in three parts, and the split is what lets a fifteen-year
+  timeline live in a pinned 100svh box:
+
+    .intro-views  the two views, and the only part that scrolls
+    .intro-foot   contact and the local clock — outside the views, so it
+                  belongs to neither and survives both
+
+  Contact used to sit at the bottom of the bio, which meant opening the record
+  took it off screen. Lifting it out is what makes the footer a constant: the
+  views change under it and it does not move, including during the swap, since
+  it is a sibling of the element being animated out rather than a child of it.
+*/}
+<header class="intro" data-intro data-view="bio">
+  <div class="intro-views">
+    <div class="intro-bio" data-intro-bio>
+      <div class="flex flex-col gap-7">
+      <div class="enter flex items-start justify-between gap-4" style="--i:0">
+        {/* Decorative: the name it sits above already announces who this is. */}
+        <img
+          class="size-12 lg:size-14"
+          src="/logo.png"
+          alt=""
+          width="384"
+          height="384"
+          loading="eager"
+          decoding="sync"
+          fetchpriority="high"
+        />
+        <LangToggle />
+      </div>
+
+      <div class="flex flex-col gap-3">
+        {
+          languages.map((lang) => (
+            <h1
+              lang={lang}
+              data-i18n={lang}
+              class="display enter text-[clamp(2.6rem,4.4vw,3.9rem)]"
+              style="--i:1"
+            >
+              {nameByLang[lang].lead}
+              {nameByLang[lang].last && ' '}
+              {nameByLang[lang].last && (
+                <span class="mark">
+                  {nameByLang[lang].last}
+                  <Doodle name="oval" class="doodle-enter" />
+                </span>
+              )}
+            </h1>
+          ))
         }
-      </h1>
-      <p class="enter text-[0.9375rem] text-muted" style="--i:2">
-        <Bilingual es={profile.role.es} en={profile.role.en} />
-      </p>
+        <p class="enter text-[0.9375rem] text-muted" style="--i:2">
+          <Bilingual es={profile.role.es} en={profile.role.en} />
+        </p>
+      </div>
+
+      {/* Each language gets its own copy of the bio: the marked-up terms differ
+          per language, so `Bilingual` (which takes plain strings) can't do it. */}
+      <div class="bio col-prose enter text-muted" style="--i:3">
+        {
+          languages.map((lang) => (
+            <div lang={lang} data-i18n={lang} class="flex flex-col gap-3.5">
+              {profile.bio.map((paragraph, p) => (
+                <p class="prose-tight">
+                  {parseGloss(paragraph[lang]).map((token, t) =>
+                    token.note ? (
+                      <button type="button" class="gloss" data-gloss>
+                        {token.text}
+                        <span class="gloss-note">{token.note}</span>
+                        {highlighted[lang] === `${p}:${t}` && (
+                          <Doodle name="highlight" class="doodle-enter doodle-wipe" />
+                        )}
+                      </button>
+                    ) : (
+                      token.text
+                    ),
+                  )}
+                </p>
+              ))}
+            </div>
+          ))
+        }
+      </div>
+
+      {/* Where, under what the work is. Not a `bio` paragraph: those run through
+          `parseGloss`, which only ever emits text — it has no notion of a link. */}
+      <div class="col-prose enter flex flex-col gap-1 text-muted" style="--i:4">
+        {
+          languages.map((lang) => (
+            <p lang={lang} data-i18n={lang} class="prose-tight">
+              {experienceParts[lang][0]}
+              <a class="link-em" href={company.href} target="_blank" rel="noreferrer noopener">
+                {company.name}
+                <ExternalArrow />
+                <Doodle name="highlight" class="doodle-enter doodle-wipe" />
+              </a>
+              {experienceParts[lang][1]}
+            </p>
+          ))
+        }
+
+        {/* Shaped like an axis row, and deliberately not one: it carries no
+            `data-axis`, so the capability panel never answers to it and it
+            drives no slot. The borrowed shape is the point — it reads as
+            another thing in the column you can open, and now it is one: the
+            href is `#recorrido`, which is the left column's own route.
+
+            Which is also why the cue is the axes' chevron rather than the
+            diagonal arrow it used to carry. Nothing leaves the page here. */}
+        <a class="axis axis-link" href={cta.href} data-track-open>
+          <Icon name="track" class="axis-icon" />
+          <span class="axis-title"><Bilingual es={cta.label.es} en={cta.label.en} /></span>
+          <svg class="axis-cue" width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+            <path
+              d="M2.75 1.25 5.75 4 2.75 6.75"
+              stroke="currentColor"
+              stroke-width="1.1"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+        </a>
+      </div>
     </div>
 
-    {/* Each language gets its own copy of the bio: the marked-up terms differ
-        per language, so `Bilingual` (which takes plain strings) can't do it. */}
-    <div class="bio col-prose enter text-muted" style="--i:3">
-      {
-        languages.map((lang) => (
-          <div lang={lang} data-i18n={lang} class="flex flex-col gap-3.5">
-            {profile.bio.map((paragraph, p) => (
-              <p class="prose-tight">
-                {parseGloss(paragraph[lang]).map((token, t) =>
-                  token.note ? (
-                    <button type="button" class="gloss" data-gloss>
-                      {token.text}
-                      <span class="gloss-note">{token.note}</span>
-                      {highlighted[lang] === `${p}:${t}` && (
-                        <Doodle name="highlight" class="doodle-enter doodle-wipe" />
-                      )}
-                    </button>
-                  ) : (
-                    token.text
-                  ),
-                )}
-              </p>
-            ))}
-          </div>
-        ))
-      }
+      {/* Stays in the bio view rather than moving to the footer: the record has
+          a legend of its own naming the same three disciplines, and two copies
+          of that control on screen at once would be one too many. */}
+      <div class="enter mt-12 lg:mt-0" style="--i:6">
+        <Axes />
+      </div>
     </div>
 
-    {/* Where, under what the work is. Not a `bio` paragraph: those run through
-        `parseGloss`, which only ever emits text — it has no notion of a link. */}
-    <div class="col-prose enter flex flex-col gap-1 text-muted" style="--i:4">
-      {
-        languages.map((lang) => (
-          <p lang={lang} data-i18n={lang} class="prose-tight">
-            {experienceParts[lang][0]}
-            <a class="link-em" href={company.href} target="_blank" rel="noreferrer noopener">
-              {company.name}
-              <ExternalArrow />
-              <Doodle name="highlight" class="doodle-enter doodle-wipe" />
-            </a>
-            {experienceParts[lang][1]}
-          </p>
-        ))
-      }
-
-      {/* Shaped like an axis row, and deliberately not one: it carries no
-          `data-axis`, so `motion.ts` never picks it up and it drives no panel
-          slot. The borrowed shape is the point — it reads as another thing in
-          the column you can open. */}
-      <a
-        class="axis axis-link"
-        href={cta.href}
-        {...(cta.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-      >
-        <Icon name="track" class="axis-icon" />
-        <span class="axis-title"><Bilingual es={cta.label.es} en={cta.label.en} /></span>
-        <ExternalArrow class="axis-cue" />
-      </a>
-    </div>
+    <Track />
   </div>
 
-  <div class="enter mt-12 flex flex-col gap-8 lg:mt-0" style="--i:6">
-    <Axes />
-
+  <div class="intro-foot enter" style="--i:7">
     <div class="flex flex-col gap-3">
       <h2 class="label"><Bilingual es="Contacto" en="Contact" /></h2>
 

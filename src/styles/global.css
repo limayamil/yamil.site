@@ -594,6 +594,15 @@ html[data-lang='es'] [data-i18n='en'] {
   padding-block: var(--pad-y);
 }
 
+/* Below the two-column breakpoint the column is a plain block: views and footer
+   simply stack in source order, which is the order they already read in. */
+.intro-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
 @media (min-width: 62rem) {
   .intro {
     position: sticky;
@@ -601,13 +610,101 @@ html[data-lang='es'] [data-i18n='en'] {
     height: 100svh;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 2.5rem;
+    gap: 2rem;
     /* 6vh, not 8vh: above ~1200px of viewport both clamp to the same 4.5rem,
        so this only ever gives back space on the short viewports that are
        fighting for it — ~32px on a 1080p screen, which is the difference
        between pinning and not. */
     padding-block: clamp(2.5rem, 6vh, 4.5rem);
+  }
+
+  /* Takes whatever the footer leaves. `min-height: 0` is not optional: without
+     it a flex item refuses to shrink below its content, the box grows past the
+     100svh column, and the footer is pushed off the bottom of the screen —
+     which is the exact thing this split exists to prevent. */
+  .intro-views {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .intro-foot {
+    flex: none;
+    margin-top: 0;
+  }
+
+  /* The pinned shape lives here, one level down from `.intro`, because it
+     belongs to the *bio* view and not to the column: `.intro` is a shell
+     holding two views, and `space-between` on it would push the track record to
+     the bottom of a 100svh box. */
+  .intro-bio {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2.5rem;
+    height: 100%;
+  }
+}
+
+/* The view switch. `display: none` rather than a visual-only hide, for the same
+   reason a closed case carries `hidden`: the inactive view leaves the
+   accessibility tree, so a screen reader reads one column, not two. */
+.intro[data-view='bio'] .track,
+.intro[data-view='track'] .intro-bio {
+  display: none;
+}
+
+/* The record scrolls inside its own column, and only in this view.
+   Fourteen entries do not fit a pinned 100svh box, and the two ways out are to
+   let the column go with the page — which takes contact and the clock away with
+   it, the thing this layout was just rebuilt to stop — or to give the views
+   their own scrollport. This is the second.
+
+   Scoped to the track deliberately. `overflow` clips as well as scrolls, and
+   the bio has one thing that legitimately overflows its box: a `.gloss-note`,
+   which is allowed to be wider than the column it anchors to. The bio also
+   already fits one viewport by design, so it has nothing to gain here and a
+   clipped popover to lose.
+
+   The bar is slimmer than the page's, in both dialects, because the page's is
+   sized for a full-height scrollport and this one is 15px out of a column that
+   is 304px wide at its narrowest. No `scrollbar-gutter`: it would reserve that
+   width whether or not the bar is there, and the only jump it could prevent is
+   between two views that are never on screen together. */
+@media (min-width: 62rem) {
+  .intro[data-view='track'] .intro-views {
+    /* How far the content dissolves before it reaches the footer, and how much
+       empty room the record keeps under its last line so that, scrolled all the
+       way down, the ramp has nothing left to fade. The two are the same number
+       on purpose — see `.track`'s padding below. */
+    --fade: 4rem;
+
+    /* `clip` and not `visible`: an axis left at `visible` next to a scrolling
+       one computes to `auto`, which is where the horizontal scrollbar came
+       from — `enter-left` starts each entry 22px to the right of where it
+       lands, and for the length of the stagger that is real overflow. Clipping
+       it also reads better: the entries slide out from behind the column edge
+       instead of pushing it around. */
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+
+    /* The hard edge between the record and the footer, softened. A mask rather
+       than a gradient overlay because there is a moving shader under all of
+       this: a scrim faked in `--color-bg` would be a dark band sitting over the
+       beams, while this actually lets them through. */
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent 100%);
+  }
+
+  .intro[data-view='track'] .intro-views::-webkit-scrollbar {
+    width: 0.375rem;
+  }
+
+  /* Exactly the ramp's height. Without it the last entry would live inside the
+     fade permanently and never resolve, no matter how far down you scrolled. */
+  .intro[data-view='track'] .track {
+    padding-bottom: var(--fade);
   }
 }
 
@@ -639,23 +736,30 @@ html[data-lang='es'] [data-i18n='en'] {
 
    Adding a row to the intro means re-running all three. The thresholds are a
    reading, not a lever — trimming the intro, or widening `.col-prose`, is what
-   actually buys pinning back. */
+   actually buys pinning back.
+
+   All three are scoped to `[data-view='bio']`, and for two reasons. The budget
+   they encode is the bio's — the track record has never fitted a viewport and
+   was never asked to, since it scrolls inside its own box. And the scoping has
+   to be on all three or none: at (0,2,0) a single scoped rule would outrank the
+   unscoped ones regardless of source order, and the two that re-assert sticky
+   on tall screens would stop being able to. */
 @media (min-width: 62rem) and (max-height: 67rem) {
-  .intro {
+  .intro[data-view='bio'] {
     position: static;
     height: auto;
   }
 }
 
 @media (min-width: 90rem) and (min-height: 57.5rem) {
-  .intro {
+  .intro[data-view='bio'] {
     position: sticky;
     height: 100svh;
   }
 }
 
 @media (min-width: 120rem) and (min-height: 54.5rem) {
-  .intro {
+  .intro[data-view='bio'] {
     position: sticky;
     height: 100svh;
   }
@@ -924,7 +1028,15 @@ html[data-lang='es'] [data-i18n='en'] {
   gap: 0.5rem;
 }
 
-.axes .axis {
+/* `.chip` is the pill shape an `.axis` takes when it is one of a set rather
+   than a row of its own. Two places wear it — the capability list here and the
+   track record's legend — and it is a shared class rather than two scoped
+   selectors because it is literally the same control naming the same three
+   disciplines, twice.
+   It rides on `.axis` and every rule below cancels something `.axis` does, so
+   these must stay *after* the `.axis` block: the two are equally specific and
+   source order is what settles it. */
+.chip {
   /* Hugs its own content instead of stretching: `1fr` on the title is what made
      every row the width of the column. */
   grid-template-columns: auto auto;
@@ -943,29 +1055,39 @@ html[data-lang='es'] [data-i18n='en'] {
    that with its own outline, and the 15px the cue reserves is the difference
    between two chips sharing a line and three stacking at the column's
    narrowest (19rem). */
-.axes .axis-cue {
+.chip .axis-cue {
   display: none;
 }
 
-.axes .axis-title {
+.chip .axis-title {
   font-size: 0.8125rem;
 }
 
-.axes .axis:hover,
-.axes .axis:focus-visible,
-.axes .axis.is-active {
+/* The record's legend chips carry a count, which is a third child in a grid
+   `.chip` declares two columns for — so it fell to an implicit second row and
+   sat under the label. It gets its own track. */
+.track-chip {
+  grid-template-columns: auto auto auto;
+}
+
+.chip:hover,
+.chip:focus-visible,
+.chip.is-active,
+.chip[aria-pressed='true'] {
   border-color: color-mix(in srgb, var(--color-ink) 32%, transparent);
   background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 /* Inside a chip the row-shift reads as the label sliding off its own border, so
    the chip stays put and only the cue moves. */
-.axes .axis:hover .axis-icon,
-.axes .axis:focus-visible .axis-icon,
-.axes .axis.is-active .axis-icon,
-.axes .axis:hover .axis-title,
-.axes .axis:focus-visible .axis-title,
-.axes .axis.is-active .axis-title {
+.chip:hover .axis-icon,
+.chip:focus-visible .axis-icon,
+.chip.is-active .axis-icon,
+.chip[aria-pressed='true'] .axis-icon,
+.chip:hover .axis-title,
+.chip:focus-visible .axis-title,
+.chip.is-active .axis-title,
+.chip[aria-pressed='true'] .axis-title {
   transform: none;
 }
 
@@ -1141,6 +1263,290 @@ html[data-lang='es'] [data-i18n='en'] {
 .axis-tools li:hover .tool-icon {
   color: var(--color-ink);
   transform: translate3d(0, -2px, 0);
+}
+
+/* ---------------------------------------------------------------------------
+   Track record — the left column's second view
+
+   Fourteen roles over fifteen years in a column that runs as narrow as 19rem,
+   so everything here is built to survive that width: one rail, one node per
+   entry, and copy that stacks rather than sits in columns.
+
+   Three of these carry meaning rather than decoration:
+     - the node holds the discipline's glyph, which is the same key the bento
+       filters and the capability panel use;
+     - the rule under each entry is its *duration*, drawn to scale, so a
+       four-year stint and a three-month cover cannot look the same;
+     - picking a discipline in the legend dims the rest instead of removing
+       them, because the point of a timeline is where a discipline clusters and
+       a list that closed its own gaps has thrown that away.
+--------------------------------------------------------------------------- */
+
+.track {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vh, 1.75rem);
+}
+
+/* Sideways, where `.enter` and `.case-enter` come from below: this view arrives
+   by replacing the one beside it, and the whole gesture — the bio leaving to
+   the left, this landing from the right — is one direction of travel.
+
+   A CSS animation rather than `[data-reveal]`, deliberately. Every entry has
+   been inside a `display: none` view since load, so it has no box for an
+   IntersectionObserver to intersect and never gets one on the way in — the same
+   trap the case router hit from the other side. This restarts on its own each
+   time the view is shown, which is exactly the behaviour wanted. */
+@keyframes enter-left {
+  from {
+    opacity: 0;
+    transform: translate3d(22px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.track-enter {
+  opacity: 0;
+  animation: enter-left 0.7s var(--ease-out) forwards;
+  animation-delay: calc(var(--i, 0) * 45ms + 120ms);
+}
+
+.track-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.track-title {
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+}
+
+/* The same three-figure strip a case opens with, on the other side of the page
+   and for the same job: say how big the record is before anyone reads it. */
+.track-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+}
+
+.track-stat-value {
+  display: block;
+  font-size: clamp(1.375rem, 2.6vw, 1.75rem);
+  font-weight: 500;
+  letter-spacing: -0.024em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-ink);
+}
+
+.track-stat-label {
+  display: block;
+  margin-top: 0.125rem;
+}
+
+.track-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.track-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Same construction as `.axis-hint` in the capability panel, and that rhyme is
+   the point: it is the same instruction about the same three disciplines, so it
+   is set in the same hand with the same arrow reaching back up at them. */
+.track-hint {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  /* On top of the legend's own `gap` — the arrow is drawn into the space
+     between the note and the chips, so that space is a measured number rather
+     than the column's default rhythm. */
+  margin-top: 0.625rem;
+  padding-left: 2.375rem;
+}
+
+.track-hint .doodle {
+  bottom: 0.3em;
+  left: 0.15rem;
+  width: 1.75rem;
+  height: 2.25rem;
+}
+
+.track-line {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* The lane the rail and its nodes live in. */
+  padding-left: 2.25rem;
+}
+
+/* The rail, drawn top-down on open. Inset at both ends so it starts and stops
+   at the first and last node rather than running past them, and faded out at
+   the bottom so the oldest entry dissolves instead of hitting a full stop —
+   the record continues below the fold of anyone's interest, not at a line. */
+.track-line::before {
+  content: '';
+  position: absolute;
+  left: 0.8125rem;
+  top: 0.8125rem;
+  bottom: 1.5rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--color-line) 0%,
+    var(--color-line) 80%,
+    transparent 100%
+  );
+  transform: scaleY(0);
+  transform-origin: top;
+  animation: rail 1.2s var(--ease-out) 0.24s forwards;
+}
+
+@keyframes rail {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.track-entry {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  transition: opacity 0.4s var(--ease-io);
+}
+
+/* Sits on the rail, opaque, so the line passes behind it rather than through
+   it. `--color-surface` and not a translucent wash for the reason the token
+   exists: there is a moving image under all of this. */
+.track-node {
+  position: absolute;
+  left: -2.25rem;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-faint);
+  transition:
+    color 0.3s var(--ease-io),
+    box-shadow 0.3s var(--ease-io);
+}
+
+/* `Icon.astro` draws at 16, which fills a 26px disc corner to corner. */
+.track-node svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* The job that has no end date. Marked in the palette's one colour rather than
+   with a word, so the eye finds "now" before it reads anything. */
+.track-entry[data-current] .track-node {
+  color: var(--color-primary-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+.track-entry:hover .track-node {
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 32%, transparent);
+}
+
+.track-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.track-tag {
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.625rem;
+}
+
+.track-role {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.014em;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+/* `-ink`, never the plain primary: this is text well under 24px. */
+.track-company {
+  color: var(--color-primary-ink);
+  font-size: 0.8125rem;
+}
+
+.track-note {
+  margin-top: 0.25rem;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+/* How long it lasted, as a share of the longest run. `--span` is computed at
+   build time in `Track.astro`; the animation and the resting state both read
+   the same variable, so a stopped animation lands exactly on the drawn value. */
+.track-span {
+  display: block;
+  margin-top: 0.625rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-line);
+}
+
+.track-span-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transform: scaleX(var(--span, 0));
+  transform-origin: left;
+  animation: span-grow 0.9s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 320ms);
+}
+
+@keyframes span-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--span, 0));
+  }
+}
+
+/* The legend, dimming rather than filtering — see the section note above. Four
+   lines and no lookup table, for the same reason the bento's version is four
+   lines: an entry's `axis` is a capability's `icon`. */
+.track-line[data-highlight='engineering'] .track-entry:not([data-axis='engineering']),
+.track-line[data-highlight='motion'] .track-entry:not([data-axis='motion']),
+.track-line[data-highlight='ops'] .track-entry:not([data-axis='ops']) {
+  opacity: 0.26;
+}
+
+.track-out {
+  align-self: flex-start;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.track-out:hover,
+.track-out:focus-visible {
+  color: var(--color-ink);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1898,8 +2304,26 @@ html[data-lang='es'] [data-i18n='en'] {
 
   .enter,
   [data-reveal],
-  .case-enter {
+  .case-enter,
+  .track-enter {
     opacity: 1;
+    transform: none;
+  }
+
+  /* The rail and the duration bars resolve to drawn. Both already carry their
+     final value as a base style, so killing the animation is enough — the bar
+     lands on `scaleX(var(--span))` and still says how long the job lasted,
+     which is information, not decoration. */
+  .track-line::before {
+    transform: none;
+    animation: none;
+  }
+
+  .track-span-fill {
+    animation: none;
+  }
+
+  .track-entry:hover .track-node {
     transform: none;
   }
 

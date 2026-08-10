@@ -1,0 +1,228 @@
+---
+/**
+ * The track record — the second state of the left-hand column.
+ *
+ * Deliberately the same construction as `ProjectDetail.astro` on the right:
+ * rendered server-side, shipped inside the page, and switched by an attribute
+ * that `motion.ts` flips off the `#recorrido` hash. No fetch, no template, no
+ * second route. `.intro[data-view]` picks a view exactly the way
+ * `.projects[data-view]` does.
+ *
+ * Three things here are not free-hand:
+ *
+ *   - **The legend is the axis key, seen from the third side.** The chips are
+ *     built from `profile.capabilities`, so they cannot drift from the "En qué
+ *     soy bueno" list or from the bento's filter row — an entry's `axis` is a
+ *     capability's `icon`. Picking one *dims* the rest rather than removing
+ *     them, which is the opposite of what the bento does and the right call
+ *     here: the point of the timeline is where a discipline clusters in the
+ *     fifteen years, and you cannot see a cluster in a list that closed the
+ *     gaps around it.
+ *   - **The span bar is the duration, to scale.** Every entry's rule is
+ *     `scaleX(months / longest)`, which is what makes a four-year stint and a
+ *     three-month cover read differently at a glance instead of as two
+ *     identical rows. Pure transform, so it animates on the compositor.
+ *   - **Entries stagger with `--i`, not `[data-reveal]`.** A reveal observer
+ *     never fires for an element that has been inside `display: none` since
+ *     load — the same bug the case router hit from the other direction — so the
+ *     entrance is a CSS animation, which restarts on its own every time the
+ *     view is shown.
+ */
+import { profile } from '../data/profile';
+import { track } from '../data/track';
+import Bilingual from './Bilingual.astro';
+import Doodle from './Doodle.astro';
+import ExternalArrow from './ExternalArrow.astro';
+import Icon from './Icon.astro';
+
+const languages = ['es', 'en'] as const;
+
+/**
+ * Month names by hand rather than `Intl.DateTimeFormat`. ICU renders Spanish
+ * short months with a trailing period and spells September "sept", so the
+ * column would carry two different label widths for no reason. Twelve strings
+ * twice is cheaper than styling around that.
+ */
+const MONTHS: Record<(typeof languages)[number], string[]> = {
+  es: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+};
+
+const PRESENT = { es: 'hoy', en: 'now' };
+
+const parse = (iso: string): [number, number] => {
+  const [year, month] = iso.split('-').map(Number);
+  return [year, month];
+};
+
+const monthLabel = (iso: string, lang: (typeof languages)[number]) => {
+  const [year, month] = parse(iso);
+  return `${MONTHS[lang][month - 1]} ${year}`;
+};
+
+/**
+ * Length in months. An open-ended entry is measured against the build date,
+ * which means the current role's bar grows a pixel or so per rebuild — the one
+ * thing on the page that is not byte-identical between builds, and the honest
+ * behaviour for a bar that means "how long".
+ */
+const now = new Date();
+const span = (start: string, end: string | null) => {
+  const [ys, ms] = parse(start);
+  const [ye, me] = end ? parse(end) : [now.getFullYear(), now.getMonth() + 1];
+  return Math.max(1, (ye - ys) * 12 + (me - ms));
+};
+
+// Newest first. `start` descending, and a tie broken by the longer run, so a
+// staff role sorts above a freelance one that began the same month.
+const entries = [...track.entries].sort(
+  (a, b) => b.start.localeCompare(a.start) || span(b.start, b.end) - span(a.start, a.end),
+);
+
+const longest = Math.max(...entries.map((entry) => span(entry.start, entry.end)));
+
+const axisTitle = (axis: string) =>
+  profile.capabilities.find((capability) => capability.icon === axis)?.title ?? axis;
+
+const countFor = (axis: string) => entries.filter((entry) => entry.axis === axis).length;
+
+const stats = [
+  { value: String(now.getFullYear() - track.since), label: { es: 'años', en: 'years' } },
+  { value: String(entries.length), label: { es: 'roles', en: 'roles' } },
+  {
+    value: String(new Set(entries.map((entry) => entry.company)).size),
+    label: { es: 'empresas', en: 'companies' },
+  },
+];
+---
+
+<section class="track" data-track aria-labelledby="track-title">
+  <button type="button" class="case-back track-enter" style="--i:0" data-track-back>
+    <svg width="14" height="14" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+      <path
+        d="M5.25 1.25 2.25 4l3 2.75"
+        stroke="currentColor"
+        stroke-width="1.1"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+    <Bilingual es="Volver" en="Back" />
+  </button>
+
+  <header class="track-head track-enter" style="--i:1">
+    <p class="label"><Bilingual es="Recorrido" en="Track record" /></p>
+    <h2 id="track-title" class="track-title display">
+      <Bilingual es={track.title.es} en={track.title.en} />
+    </h2>
+    <p class="col-prose prose-tight text-muted">
+      <Bilingual es={track.lead.es} en={track.lead.en} />
+    </p>
+  </header>
+
+  {/* Same shape as `.case-metrics` on the other side of the page — three
+      figures that say how big the record is before anyone reads it. */}
+  <ul class="track-stats track-enter" style="--i:2">
+    {
+      stats.map((stat) => (
+        <li>
+          <span class="track-stat-value">{stat.value}</span>
+          <span class="label track-stat-label">
+            <Bilingual es={stat.label.es} en={stat.label.en} />
+          </span>
+        </li>
+      ))
+    }
+  </ul>
+
+  {/* The legend. Buttons, not links: they change what is emphasised on this
+      view and navigate nowhere. `aria-pressed` carries both the look and the
+      announcement, the same single source `.filter` and `.lang-option` use. */}
+  <div class="track-legend track-enter" style="--i:3" data-track-legend>
+    <ul>
+      {
+        profile.capabilities.map((capability) => (
+          <li>
+            <button
+              type="button"
+              class="axis chip track-chip"
+              data-track-axis={capability.icon}
+              aria-pressed="false"
+            >
+              <Icon name={capability.icon} class="axis-icon" />
+              <span class="axis-title">{capability.title}</span>
+              <span class="filter-count">{countFor(capability.icon)}</span>
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+
+    {/* Aria-hidden: it describes a hover/tap affordance for three buttons that
+        are right there and already labelled. Read aloud it is just noise. */}
+    <p class="track-hint hand" aria-hidden="true">
+      <Doodle name="arrowUp" class="doodle-enter" />
+      <Bilingual es={track.legendNote.es} en={track.legendNote.en} />
+    </p>
+  </div>
+
+  <ol class="track-line" data-track-line>
+    {
+      entries.map((entry, index) => (
+        <li
+          class="track-entry track-enter"
+          style={`--i:${index + 4}; --span:${(span(entry.start, entry.end) / longest).toFixed(3)}`}
+          data-axis={entry.axis}
+          {...(entry.end === null ? { 'data-current': '' } : {})}
+        >
+          <span class="track-node" aria-hidden="true">
+            <Icon name={entry.axis} />
+          </span>
+
+          <p class="label track-dates">
+            {languages.map((lang) => (
+              <span lang={lang} data-i18n={lang}>
+                {monthLabel(entry.start, lang)}
+                {' — '}
+                {entry.end ? monthLabel(entry.end, lang) : PRESENT[lang]}
+              </span>
+            ))}
+            {entry.freelance && (
+              <span class="track-tag">
+                <Bilingual es="Freelance" en="Freelance" />
+              </span>
+            )}
+          </p>
+
+          <h3 class="track-role">{entry.role}</h3>
+          <p class="track-company">{entry.company}</p>
+          <p class="track-note prose-tight">
+            <Bilingual es={entry.note.es} en={entry.note.en} />
+          </p>
+
+          {/* How long it lasted, drawn to scale against the longest run.
+              `aria-hidden` because the dates two lines up already say it, and
+              in words rather than in pixels. */}
+          <span class="track-span" aria-hidden="true">
+            <span class="track-span-fill" />
+          </span>
+
+          {/* The discipline, for a screen reader only: sighted readers get it
+              from the glyph in the node, and repeating it as visible text on
+              every row would be three more words per entry in a 19rem column. */}
+          <span class="sr-only">{axisTitle(entry.axis)}</span>
+        </li>
+      ))
+    }
+  </ol>
+
+  <a
+    class="link track-out track-enter"
+    style={`--i:${entries.length + 4}`}
+    href={profile.experience.cta.source}
+    target="_blank"
+    rel="noreferrer noopener"
+  >
+    <Bilingual es="Ver el perfil completo en LinkedIn" en="See the full profile on LinkedIn" />
+    <ExternalArrow />
+  </a>
+</section>

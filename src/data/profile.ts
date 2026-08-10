@@ -47,12 +47,18 @@ export interface Experience {
    */
   line: Localized;
   company: { name: string; href: string };
-  /** Link out to the full track record. */
-  cta: { label: Localized; href: string; external?: boolean };
+  /**
+   * Opens the track record. `href` is a hash and not a URL on purpose: the
+   * record is the left column's second view, rendered into this same page and
+   * routed by `motion.ts`, exactly the way `#caso/<slug>` opens a case on the
+   * right. `source` is where that record comes from, linked at the foot of it.
+   */
+  cta: { label: Localized; href: string; source: string };
 }
 
 export interface Profile {
-  name: string;
+  /** Rendered as a heading, split so the ring can circle the last word — see `Intro.astro`. */
+  name: Localized;
   role: Localized;
   /**
    * Bio paragraphs. A term wrapped as `[term](note)` becomes a hoverable
@@ -80,7 +86,10 @@ export interface Profile {
 }
 
 export const profile: Profile = {
-  name: 'Yami hace cosas',
+  name: {
+    es: 'Yami hace cosas',
+    en: 'Yami makes things',
+  },
 
   role: {
     es: 'Diseño y automatizo operaciones entre marketing, producto y web',
@@ -104,12 +113,10 @@ export const profile: Profile = {
       en: 'Currently at {company} as Technical Marketing Operations Lead.',
     },
     company: { name: 'Kinetic Corp', href: 'https://kinetic-corp.com' },
-    // TODO: point this at a proper experience page once it exists. LinkedIn is
-    // the stand-in — a real destination beats a dead `#`.
     cta: {
       label: { es: 'Conocé mi recorrido', en: 'See my track record' },
-      href: 'https://www.linkedin.com/in/yamillues/',
-      external: true,
+      href: '#recorrido',
+      source: 'https://www.linkedin.com/in/yamillues/',
     },
   },
 
@@ -173,8 +180,8 @@ export const profile: Profile = {
 
 export const meta = {
   title: {
-    es: `${profile.name} — Design Engineering, Motion y Marketing Ops`,
-    en: `${profile.name} — Design Engineering, Motion and Marketing Ops`,
+    es: `${profile.name.es} — Design Engineering, Motion y Marketing Ops`,
+    en: `${profile.name.en} — Design Engineering, Motion and Marketing Ops`,
   },
   description: {
     es: 'Diseño, construyo y automatizo: interfaces, motion y operaciones de marketing que le sacan el trabajo manual del medio a los equipos.',
