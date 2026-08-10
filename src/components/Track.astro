@@ -22,6 +22,7 @@
 import { profile } from '../data/profile';
 import { track } from '../data/track';
 import Bilingual from './Bilingual.astro';
+import CompanyLogo from './CompanyLogo.astro';
 import ExternalArrow from './ExternalArrow.astro';
 import Icon from './Icon.astro';
 
@@ -149,7 +150,9 @@ const stats = [
           </p>
 
           <h3 class="track-role">{entry.role}</h3>
-          <p class="track-company">{entry.company}</p>
+          <p class="track-company">
+            <CompanyLogo name={entry.company} />
+          </p>
           <p class="track-note prose-tight">
             <Bilingual es={entry.note.es} en={entry.note.en} />
           </p>

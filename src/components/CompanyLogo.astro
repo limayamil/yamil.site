@@ -1,0 +1,41 @@
+---
+import { companyLogos } from '../lib/company-logos';
+
+/**
+ * One company wordmark, replacing the plain-text company name in a track
+ * entry. Same contract as `ToolIcon.astro`: a typo in `track.ts`'s `company`
+ * string should break the build, not ship a blank row.
+ *
+ * Sized by *area*, not by a shared height. The marks trace at wildly
+ * different aspect ratios — ECONOMIX is ~8.9:1, Comprando en Grupo ~1.2:1 —
+ * so locking every mark to the same height either shrinks the near-square
+ * ones to a smudge or, run the other way, sends the wordmarks off the
+ * column. `aspect-ratio` here is the mark's own traced ratio (computed from
+ * its `viewBox`, not guessed); paired with `.track-company-logo`'s
+ * `max-width`/`max-height` in global.css it behaves like `object-fit:
+ * contain` — a wide mark is bounded by width, a square one grows to the
+ * height budget instead.
+ */
+interface Props {
+  name: string;
+}
+
+const { name }: Props = Astro.props;
+const logo = companyLogos[name];
+
+if (!logo) {
+  throw new Error(`Unknown company logo "${name}". Known: ${Object.keys(companyLogos).join(', ')}`);
+}
+
+const [, , vbWidth, vbHeight] = logo.viewBox.split(' ').map(Number);
+---
+
+<svg
+  class="track-company-logo"
+  viewBox={logo.viewBox}
+  style={`aspect-ratio: ${vbWidth} / ${vbHeight}`}
+  fill="currentColor"
+  role="img"
+  aria-label={name}
+  set:html={logo.markup}
+/>
