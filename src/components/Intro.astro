@@ -229,9 +229,9 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
       </section>
     </div>
 
-      {/* Stays in the bio view rather than moving to the footer: the record has
-          a legend of its own naming the same three disciplines, and two copies
-          of that control on screen at once would be one too many. */}
+      {/* Stays in the bio view rather than moving to the footer: these chips
+          are the bento's filter, and a filter that outlives the view it filters
+          would be a control pointing at nothing while the record is open. */}
       <div class="enter mt-12 lg:mt-0" style="--i:6">
         <Axes />
       </div>

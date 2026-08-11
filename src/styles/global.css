@@ -199,10 +199,16 @@ html {
   background: transparent;
 }
 
+/* No `border-radius` here, deliberately. Setting one softens the ring on bare
+   inline links, but it also *wins over the element's own radius* while focused,
+   so every pill (`.chip`, `.filter-clear`, `.tile-cue` — all 999px) and every
+   panel (`.tile` 14px, `.gloss-note` 8px, `.now` 0.75rem) squared its corners
+   the moment it took keyboard focus. Browsers already draw `outline` following
+   whatever radius the element has; a square ring on a square link costs less
+   than a square pill. */
 :focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 3px;
-  border-radius: 2px;
 }
 
 /* Left-edge frame line — Desktop only. Fixed rather than a `body` border so it
@@ -831,6 +837,20 @@ html[data-lang='es'] [data-i18n='en'] {
 
 /* ---------------------------------------------------------------------------
    Inline links — underline grows from the left on hover.
+
+   `.link` is the shape, and it is deliberately colourless: it declares a
+   `color` transition with no `color`, so it inherits whatever it lands in and
+   every variant only has to say how it differs. Three do, and each differs in
+   exactly one way:
+
+     .track-out   muted / 13px — the exit at the foot of a fourteen-entry list
+     .case-link   ink / 15px   — a project's live URL, the loudest outbound
+                                 link on the page
+     .link-em     its own class, not a variant: a permanent underline, because
+                  it is the noun of its sentence as well as a link
+
+   Anything that leaves the page also carries `<ExternalArrow />`. That is the
+   rule, not a per-instance decision.
 --------------------------------------------------------------------------- */
 
 .link {
@@ -866,7 +886,8 @@ html[data-lang='es'] [data-i18n='en'] {
   transition: transform 0.45s var(--ease-out);
 }
 
-.link:hover .arrow {
+.link:hover .arrow,
+.link:focus-visible .arrow {
   transform: translate3d(2px, -2px, 0);
 }
 
@@ -889,15 +910,15 @@ html[data-lang='es'] [data-i18n='en'] {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.3125rem;
+  /* Same gap as `.link`: it is the same 8px arrow, and two values half a pixel
+     apart were a magic number answering to no scale. */
+  gap: 0.375rem;
   color: var(--color-primary-ink);
   text-decoration: underline;
   text-decoration-color: var(--color-primary);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 0.22em;
-  transition:
-    color 0.35s var(--ease-io),
-    text-decoration-color 0.35s var(--ease-io);
+  transition: text-decoration-color 0.35s var(--ease-io);
 }
 
 .link-em:hover,
@@ -909,20 +930,9 @@ html[data-lang='es'] [data-i18n='en'] {
   transition: transform 0.45s var(--ease-out);
 }
 
-.link-em:hover .arrow {
+.link-em:hover .arrow,
+.link-em:focus-visible .arrow {
   transform: translate3d(2px, -2px, 0);
-}
-
-/* Same construction as `.gloss .doodle`, and for the same reason: under the
-   word rather than over it, in the wash rather than the solid, so the text
-   keeps its contrast against the page instead of against the mark. */
-.link-em .doodle {
-  z-index: -1;
-  top: 0;
-  left: -0.26em;
-  width: calc(100% + 0.52em);
-  height: 100%;
-  color: var(--color-primary-wash);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1112,10 +1122,10 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 /* `.chip` is the pill shape an `.axis` takes when it is one of a set rather
-   than a row of its own. Two places wear it — the capability list here and the
-   track record's legend — and it is a shared class rather than two scoped
-   selectors because it is literally the same control naming the same three
-   disciplines, twice.
+   than a row of its own. Only the capability list wears it today — the track
+   record's legend did too, and was removed before it shipped (design.md §9).
+   It stays a shared class rather than a scoped one because the shape is the
+   thing being named, and the legend is the sort of control that comes back.
    It rides on `.axis` and every rule below cancels something `.axis` does, so
    these must stay *after* the `.axis` block: the two are equally specific and
    source order is what settles it. */
@@ -1445,14 +1455,16 @@ html[data-lang='es'] [data-i18n='en'] {
    so everything here is built to survive that width: one rail, one node per
    entry, and copy that stacks rather than sits in columns.
 
-   Three of these carry meaning rather than decoration:
+   Two of these carry meaning rather than decoration:
      - the node holds the discipline's glyph, which is the same key the bento
        filters and the capability panel use;
      - the rule under each entry is its *duration*, drawn to scale, so a
-       four-year stint and a three-month cover cannot look the same;
-     - picking a discipline in the legend dims the rest instead of removing
-       them, because the point of a timeline is where a discipline clusters and
-       a list that closed its own gaps has thrown that away.
+       four-year stint and a three-month cover cannot look the same.
+
+   Nothing in this view filters or highlights by discipline. A three-chip
+   legend that dimmed the rows not sharing one was built and pulled before it
+   shipped (design.md §9); the `axis` key stays on every entry because it is
+   free and it is what ties the three screens together.
 --------------------------------------------------------------------------- */
 
 .track {
@@ -1751,7 +1763,6 @@ html[data-lang='es'] [data-i18n='en'] {
   cursor: pointer;
   transition:
     color 0.3s var(--ease-io),
-    background-color 0.3s var(--ease-io),
     transform 0.4s var(--ease-out);
 }
 
@@ -2212,9 +2223,12 @@ html[data-lang='es'] [data-i18n='en'] {
   color: var(--color-faint);
 }
 
+/* No `font-weight` here: it rides on `.display`, and Instrument Serif ships a
+   single 400 face while `body` carries `font-synthesis-weight: none`. The 500
+   this used to declare resolved back to 400 and only contradicted the class it
+   sits next to in the markup. */
 .case-title {
   font-size: clamp(1.75rem, 4vw, 2.625rem);
-  font-weight: 500;
   letter-spacing: -0.028em;
   line-height: 1.08;
   text-wrap: balance;
@@ -2376,8 +2390,14 @@ html[data-lang='es'] [data-i18n='en'] {
   font-size: 0.75rem;
 }
 
+/* The mirror of `.track-out` on the other column, and deliberately the heavier
+   of the two: that one is a footnote exit at the bottom of a list, this one is
+   the project's live URL — the thing a case study is arguing you should go
+   look at. Stated rather than inherited, so the difference reads as a decision
+   instead of as whatever the cascade happened to hand it. */
 .case-link {
   align-self: flex-start;
+  color: var(--color-ink);
 }
 
 .case-nav {

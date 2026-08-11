@@ -14,6 +14,7 @@
 import type { CollectionEntry } from 'astro:content';
 import { profile } from '../data/profile';
 import Bilingual from './Bilingual.astro';
+import ExternalArrow from './ExternalArrow.astro';
 
 interface Props {
   project: CollectionEntry<'projects'>['data'];
@@ -164,6 +165,7 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
         rel="noreferrer noopener"
       >
         <Bilingual es={detail.link.label.es} en={detail.link.label.en} />
+        <ExternalArrow />
       </a>
     )
   }
