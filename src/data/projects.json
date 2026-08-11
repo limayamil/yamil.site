@@ -1,34 +1,39 @@
 [
   {
-    "id": "atlas-design-system",
+    "id": "asofix-hubspot-automation",
     "title": {
-      "es": "Atlas — Sistema de Diseño",
-      "en": "Atlas Design System"
+      "es": "Asofix — Automatización comercial",
+      "en": "Asofix — Commercial Automation"
     },
     "summary": {
-      "es": "Un sistema de componentes que reemplazó cuatro librerías paralelas y le sacó el rediseño de encima a tres equipos.",
-      "en": "A component system that replaced four parallel libraries and took the redesign off three teams' plates."
+      "es": "Un flujo que valida, normaliza y envía deals de HubSpot a Asofix con trazabilidad de punta a punta.",
+      "en": "A workflow that validates, normalizes, and sends HubSpot deals to Asofix with end-to-end traceability."
     },
-    "axis": "engineering",
-    "tier": "primary",
-    "client": "Cliente placeholder",
+    "axis": "ops",
+    "tier": "secondary",
+    "shape": "vertical",
+    "client": "Asofix",
     "year": 2025,
     "roles": [
       {
-        "es": "Front-end Development",
-        "en": "Front-end Development"
+        "es": "Marketing Ops",
+        "en": "Marketing Ops"
       },
       {
-        "es": "Sistemas",
-        "en": "Systems"
+        "es": "Automatización",
+        "en": "Automation"
+      },
+      {
+        "es": "Integraciones",
+        "en": "Integrations"
       }
     ],
-    "poster": "/media/placeholder-01.svg",
-    "order": 1,
+    "poster": "/media/asofix-automatizacion.webp",
+    "order": 2,
     "detail": {
       "lead": {
-        "es": "Cuatro equipos mantenían cuatro versiones del mismo botón. Ninguna estaba mal; el problema era que ninguna era la misma.",
-        "en": "Four teams maintained four versions of the same button. None of them were wrong — the problem was that none of them were the same."
+        "es": "Una integración comercial unidireccional conecta HubSpot con Asofix a través de Make y Google Sheets. Desde octubre de 2025, la automatización procesó 11.432 leads con validación y trazabilidad en cada envío.",
+        "en": "A one-way commercial integration connects HubSpot to Asofix through Make and Google Sheets. Since October 2025, the automation has processed 11,432 leads with validation and traceability on every submission."
       },
       "facts": [
         {
@@ -37,18 +42,8 @@
             "en": "Role"
           },
           "value": {
-            "es": "Diseño y desarrollo",
-            "en": "Design and build"
-          }
-        },
-        {
-          "label": {
-            "es": "Equipo",
-            "en": "Team"
-          },
-          "value": {
-            "es": "3 squads de producto",
-            "en": "3 product squads"
+            "es": "Arquitectura e implementación",
+            "en": "Architecture and implementation"
           }
         },
         {
@@ -57,18 +52,18 @@
             "en": "Stack"
           },
           "value": {
-            "es": "React, TypeScript, Figma",
-            "en": "React, TypeScript, Figma"
+            "es": "HubSpot, Make, Google Sheets, API de Asofix",
+            "en": "HubSpot, Make, Google Sheets, Asofix API"
           }
         },
         {
           "label": {
-            "es": "Duración",
-            "en": "Duration"
+            "es": "Flujo",
+            "en": "Flow"
           },
           "value": {
-            "es": "7 meses",
-            "en": "7 months"
+            "es": "Integración comercial unidireccional",
+            "en": "One-way commercial integration"
           }
         }
       ],
@@ -80,24 +75,32 @@
           },
           "body": [
             {
-              "es": "Texto placeholder. Cada squad había resuelto lo mismo por su cuenta y el costo no se veía en el diseño: se veía en el tiempo que tardaba cualquier cambio transversal en llegar a producción.",
-              "en": "Placeholder copy. Each squad had solved the same thing on its own, and the cost didn't show up in the design — it showed up in how long any cross-cutting change took to reach production."
-            },
-            {
-              "es": "Texto placeholder. Antes de escribir una sola línea, auditamos las cuatro librerías y encontramos que el 70% de los componentes eran el mismo con distinto nombre.",
-              "en": "Placeholder copy. Before writing a single line we audited all four libraries and found that 70% of the components were the same thing under a different name."
+              "es": "Los deals creados en HubSpot debían llegar a Asofix con un formato consistente, aun cuando los datos de origen variaban. El envío necesitaba distinguir qué registros estaban dentro del alcance del integrador y cuáles debían descartarse antes de tocar la API.",
+              "en": "Deals created in HubSpot needed to reach Asofix in a consistent format, even when source data varied. The submission process had to distinguish which records were within the integration's scope and which had to be discarded before reaching the API."
             }
           ]
         },
         {
           "heading": {
-            "es": "Qué hice",
-            "en": "What I did"
+            "es": "La solución",
+            "en": "The solution"
           },
           "body": [
             {
-              "es": "Texto placeholder. Definí los tokens primero y los componentes después, para que el sistema pudiera absorber un cambio de marca sin tocar la capa de producto.",
-              "en": "Placeholder copy. I defined the tokens first and the components second, so the system could absorb a brand change without touching the product layer."
+              "es": "Diseñé e implementé un flujo unidireccional en Make. Antes de cada envío, el escenario valida los campos mínimos, mapea los orígenes y normaliza los datos mediante Google Sheets; recién entonces construye la solicitud y la envía a la API de Asofix.",
+              "en": "I designed and implemented a one-way workflow in Make. Before each submission, the scenario validates required fields, maps lead sources, and normalizes data through Google Sheets; only then does it build the request and send it to the Asofix API."
+            }
+          ]
+        },
+        {
+          "heading": {
+            "es": "Trazabilidad operativa",
+            "en": "Operational traceability"
+          },
+          "body": [
+            {
+              "es": "Cada operación registra la respuesta de Asofix y separa los errores de los casos fuera de alcance. Los filtros y criterios de descarte dejan una pista clara para diagnosticar incidentes sin revisar manualmente todo el recorrido del lead.",
+              "en": "Each operation records Asofix's response and separates errors from out-of-scope cases. Filters and discard criteria leave a clear trail for diagnosing incidents without manually reviewing the lead's entire journey."
             }
           ]
         },
@@ -108,658 +111,67 @@
           },
           "body": [
             {
-              "es": "Texto placeholder. Un cambio de espaciado que antes tardaba dos sprints hoy es un pull request.",
-              "en": "Placeholder copy. A spacing change that used to take two sprints is a pull request today."
+              "es": "Desde la puesta en marcha en octubre de 2025, la automatización procesó 11.432 leads. El proceso comercial quedó conectado de punta a punta, con datos consistentes y visibilidad sobre la respuesta de cada envío.",
+              "en": "Since going live in October 2025, the automation has processed 11,432 leads. The commercial process is now connected end to end, with consistent data and visibility into every submission response."
             }
           ]
         }
       ],
       "metrics": [
         {
-          "value": "4 → 1",
+          "value": "11.432",
           "label": {
-            "es": "librerías",
-            "en": "libraries"
-          }
-        },
-        {
-          "value": "−62%",
-          "label": {
-            "es": "tiempo de entrega",
-            "en": "time to ship"
-          }
-        },
-        {
-          "value": "148",
-          "label": {
-            "es": "componentes",
-            "en": "components"
+            "es": "leads procesados desde octubre de 2025",
+            "en": "leads processed since October 2025"
           }
         }
       ],
       "gallery": [
         {
-          "src": "/media/placeholder-04.svg",
+          "src": "/media/asofix-flujo-automatizacion.webp",
           "alt": {
-            "es": "Vista placeholder del sistema",
-            "en": "Placeholder view of the system"
+            "es": "Captura del flujo de automatización comercial de Asofix",
+            "en": "Screenshot of the Asofix commercial automation workflow"
           },
           "caption": {
-            "es": "Placeholder — reemplazar por una captura real.",
-            "en": "Placeholder — swap for a real capture."
+            "es": "Flujo de validación, normalización y envío de deals desde HubSpot hacia Asofix.",
+            "en": "Workflow for validating, normalizing, and sending deals from HubSpot to Asofix."
           },
           "wide": true
-        },
-        {
-          "src": "/media/placeholder-07.svg",
-          "alt": {
-            "es": "Detalle placeholder",
-            "en": "Placeholder detail"
-          }
-        },
-        {
-          "src": "/media/placeholder-02.svg",
-          "alt": {
-            "es": "Detalle placeholder",
-            "en": "Placeholder detail"
-          }
         }
       ]
     }
   },
   {
-    "id": "lifecycle-engine",
+    "id": "gordo-agencia-web",
     "title": {
-      "es": "Motor de Ciclo de Vida",
-      "en": "Lifecycle Engine"
+      "es": "Gordo Agencia — Sitio web",
+      "en": "Gordo Agencia — Website"
     },
     "summary": {
-      "es": "El onboarding dejó de depender de que alguien se acordara de mandar el mail.",
-      "en": "Onboarding stopped depending on somebody remembering to send the email."
-    },
-    "axis": "ops",
-    "tier": "secondary",
-    "shape": "vertical",
-    "client": "SaaS placeholder",
-    "year": 2024,
-    "roles": [
-      {
-        "es": "Marketing Ops",
-        "en": "Marketing Ops"
-      },
-      {
-        "es": "Automatización",
-        "en": "Automation"
-      }
-    ],
-    "poster": "/media/placeholder-03.svg",
-    "order": 2,
-    "detail": {
-      "lead": {
-        "es": "Catorce pasos manuales entre que alguien se registraba y que alguien lo llamaba. Quedaron dos, y ninguno de los dos es un recordatorio.",
-        "en": "Fourteen manual steps between somebody signing up and somebody calling them. Two are left, and neither is a reminder."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Diseño del sistema",
-            "en": "System design"
-          }
-        },
-        {
-          "label": {
-            "es": "Stack",
-            "en": "Stack"
-          },
-          "value": {
-            "es": "HubSpot, Make, n8n",
-            "en": "HubSpot, Make, n8n"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "Punto de partida",
-            "en": "Starting point"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. El proceso existía, pero vivía en la cabeza de dos personas y en una planilla que nadie más abría.",
-              "en": "Placeholder copy. The process existed, but it lived in two people's heads and in a spreadsheet nobody else opened."
-            }
-          ]
-        },
-        {
-          "heading": {
-            "es": "Qué se construyó",
-            "en": "What got built"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Cada disparador quedó documentado en el mismo lugar donde se ejecuta, así el sistema se explica solo cuando alguien nuevo lo abre.",
-              "en": "Placeholder copy. Every trigger is documented in the same place it runs, so the system explains itself the first time somebody new opens it."
-            }
-          ]
-        }
-      ],
-      "metrics": [
-        {
-          "value": "14 → 2",
-          "label": {
-            "es": "pasos manuales",
-            "en": "manual steps"
-          }
-        },
-        {
-          "value": "−9 h",
-          "label": {
-            "es": "por semana",
-            "en": "per week"
-          }
-        }
-      ],
-      "gallery": []
-    }
-  },
-  {
-    "id": "orbit-component-kit",
-    "title": {
-      "es": "Orbit — Kit de Componentes",
-      "en": "Orbit Component Kit"
-    },
-    "summary": {
-      "es": "Los bloques que usan cuatro landings distintas sin que se note que son los mismos.",
-      "en": "The blocks four different landing pages share without looking like they do."
+      "es": "El front-end que convirtió un Figma y contenidos provistos en un sitio WordPress responsive, animado y administrable.",
+      "en": "A front end that turned a supplied Figma and content into a responsive, animated, editable WordPress site."
     },
     "axis": "engineering",
     "tier": "secondary",
-    "shape": "vertical",
-    "client": "Placeholder Labs",
-    "year": 2023,
-    "roles": [
-      {
-        "es": "Front-end Development",
-        "en": "Front-end Development"
-      },
-      {
-        "es": "Sistemas",
-        "en": "Systems"
-      }
-    ],
-    "poster": "/media/placeholder-07.svg",
-    "order": 3,
-    "detail": {
-      "lead": {
-        "es": "Cuatro campañas, cuatro estéticas, un solo kit. La variación vive en los tokens, no en el markup.",
-        "en": "Four campaigns, four looks, one kit. The variation lives in the tokens, not in the markup."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Diseño y desarrollo",
-            "en": "Design and build"
-          }
-        },
-        {
-          "label": {
-            "es": "Stack",
-            "en": "Stack"
-          },
-          "value": {
-            "es": "Astro, Tailwind",
-            "en": "Astro, Tailwind"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "La idea",
-            "en": "The idea"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Si dos landings comparten estructura pero no apariencia, el problema no es el componente: es dónde se guarda el color.",
-              "en": "Placeholder copy. If two landing pages share structure but not appearance, the component isn't the problem — where the colour lives is."
-            }
-          ]
-        }
-      ],
-      "metrics": [
-        {
-          "value": "4",
-          "label": {
-            "es": "campañas",
-            "en": "campaigns"
-          }
-        }
-      ],
-      "gallery": []
-    }
-  },
-  {
-    "id": "pulse-launch-film",
-    "title": {
-      "es": "Pulse — Film de Lanzamiento",
-      "en": "Pulse Launch Film"
-    },
-    "summary": {
-      "es": "Explicar un producto invisible en cuarenta segundos.",
-      "en": "Explaining an invisible product in forty seconds."
-    },
-    "axis": "motion",
-    "tier": "tertiary",
-    "client": "Placeholder Inc.",
-    "year": 2022,
-    "roles": [
-      {
-        "es": "Motion Graphics",
-        "en": "Motion Graphics"
-      }
-    ],
-    "poster": "/media/placeholder-08.svg",
-    "order": 4,
-    "detail": {
-      "lead": {
-        "es": "El producto no tiene interfaz. Todo lo que se ve en el film es una metáfora, y la metáfora tenía que ser exacta.",
-        "en": "The product has no interface. Everything on screen is a metaphor, and the metaphor had to be exact."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Animación",
-            "en": "Animation"
-          }
-        },
-        {
-          "label": {
-            "es": "Formato",
-            "en": "Format"
-          },
-          "value": {
-            "es": "40 s",
-            "en": "40 s"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "El desafío",
-            "en": "The challenge"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Una animación que no explica algo es ruido con buen timing, y acá no había producto que filmar.",
-              "en": "Placeholder copy. An animation that doesn't explain something is noise with good timing, and there was no product to film."
-            }
-          ]
-        }
-      ],
-      "metrics": [],
-      "gallery": []
-    }
-  },
-  {
-    "id": "funnel-telemetry",
-    "title": {
-      "es": "Telemetría de Embudo",
-      "en": "Funnel Telemetry"
-    },
-    "summary": {
-      "es": "Saber dónde se cae la gente antes de que lo diga el reporte trimestral.",
-      "en": "Knowing where people drop off before the quarterly report says so."
-    },
-    "axis": "ops",
-    "tier": "tertiary",
-    "client": "Placeholder Group",
-    "year": 2022,
-    "roles": [
-      {
-        "es": "Marketing Ops",
-        "en": "Marketing Ops"
-      }
-    ],
-    "poster": "/media/placeholder-09.svg",
-    "order": 5,
-    "detail": {
-      "lead": {
-        "es": "Un embudo instrumentado de punta a punta, con alertas que llegan cuando todavía se puede hacer algo.",
-        "en": "A funnel instrumented end to end, with alerts that arrive while there's still something to do about it."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Instrumentación",
-            "en": "Instrumentation"
-          }
-        },
-        {
-          "label": {
-            "es": "Stack",
-            "en": "Stack"
-          },
-          "value": {
-            "es": "GTM, GA4, n8n",
-            "en": "GTM, GA4, n8n"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "Qué cambió",
-            "en": "What changed"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. El dato dejó de ser algo que se consulta y pasó a ser algo que avisa.",
-              "en": "Placeholder copy. The data stopped being something you look up and became something that tells you."
-            }
-          ]
-        }
-      ],
-      "metrics": [
-        {
-          "value": "12",
-          "label": {
-            "es": "eventos",
-            "en": "events"
-          }
-        }
-      ],
-      "gallery": []
-    }
-  },
-  {
-    "id": "signal-brand-system",
-    "title": {
-      "es": "Signal — Marca en Movimiento",
-      "en": "Signal — Brand in Motion"
-    },
-    "summary": {
-      "es": "Un manual de marca que en vez de describir el movimiento lo entrega listo para usar.",
-      "en": "A brand manual that hands over the motion instead of describing it."
-    },
-    "axis": "motion",
-    "tier": "primary",
-    "client": "Marca placeholder",
-    "year": 2023,
-    "roles": [
-      {
-        "es": "Motion Graphics",
-        "en": "Motion Graphics"
-      },
-      {
-        "es": "Identidad",
-        "en": "Identity"
-      }
-    ],
-    "poster": "/media/placeholder-05.svg",
-    "order": 6,
-    "detail": {
-      "lead": {
-        "es": "Un manual de marca describe cómo se ve una identidad. Este además entrega cómo se mueve, en archivos que el equipo puede abrir y usar el mismo día.",
-        "en": "A brand manual describes how an identity looks. This one also hands over how it moves, in files the team can open and use the same day."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Sistema de motion",
-            "en": "Motion system"
-          }
-        },
-        {
-          "label": {
-            "es": "Entregable",
-            "en": "Deliverable"
-          },
-          "value": {
-            "es": "24 plantillas",
-            "en": "24 templates"
-          }
-        },
-        {
-          "label": {
-            "es": "Stack",
-            "en": "Stack"
-          },
-          "value": {
-            "es": "After Effects, Blender",
-            "en": "After Effects, Blender"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "El problema del PDF",
-            "en": "The PDF problem"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Un manual que hay que interpretar se interpreta distinto cada vez. Las curvas de easing escritas en prosa no sobreviven al segundo proveedor.",
-              "en": "Placeholder copy. A manual that has to be interpreted gets interpreted differently every time. Easing curves written in prose don't survive the second vendor."
-            }
-          ]
-        },
-        {
-          "heading": {
-            "es": "Qué se entregó",
-            "en": "What shipped"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Veinticuatro plantillas con los parámetros expuestos y todo lo demás bloqueado, para que la variación posible siga siendo la variación correcta.",
-              "en": "Placeholder copy. Twenty-four templates with the parameters exposed and everything else locked, so the variation that's possible stays the variation that's right."
-            }
-          ]
-        }
-      ],
-      "metrics": [
-        {
-          "value": "24",
-          "label": {
-            "es": "plantillas",
-            "en": "templates"
-          }
-        },
-        {
-          "value": "3",
-          "label": {
-            "es": "proveedores",
-            "en": "vendors"
-          }
-        }
-      ],
-      "gallery": [
-        {
-          "src": "/media/placeholder-08.svg",
-          "alt": {
-            "es": "Fotograma placeholder",
-            "en": "Placeholder frame"
-          },
-          "wide": true
-        },
-        {
-          "src": "/media/placeholder-02.svg",
-          "alt": {
-            "es": "Detalle placeholder",
-            "en": "Placeholder detail"
-          }
-        },
-        {
-          "src": "/media/placeholder-09.svg",
-          "alt": {
-            "es": "Detalle placeholder",
-            "en": "Placeholder detail"
-          }
-        }
-      ]
-    }
-  },
-  {
-    "id": "northwind-titles",
-    "title": {
-      "es": "Northwind — Secuencia de Títulos",
-      "en": "Northwind — Title Sequence"
-    },
-    "summary": {
-      "es": "Noventa segundos de apertura donde cada corte tiene que explicar algo que el guion no dice.",
-      "en": "Ninety seconds of opening where every cut has to explain something the script doesn't say."
-    },
-    "axis": "motion",
-    "tier": "secondary",
-    "shape": "horizontal",
-    "client": "Estudio placeholder",
+    "client": "Gordo Agencia",
     "year": 2025,
     "roles": [
       {
-        "es": "Motion Graphics",
-        "en": "Motion Graphics"
-      },
-      {
-        "es": "Dirección de arte",
-        "en": "Art Direction"
-      }
-    ],
-    "poster": "/media/placeholder-02.svg",
-    "order": 7,
-    "detail": {
-      "lead": {
-        "es": "La secuencia tenía que presentar seis personajes sin nombrar a ninguno. El movimiento hizo el trabajo que el texto no podía.",
-        "en": "The sequence had to introduce six characters without naming any of them. Motion did the work the text couldn't."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Dirección y animación",
-            "en": "Direction and animation"
-          }
-        },
-        {
-          "label": {
-            "es": "Formato",
-            "en": "Format"
-          },
-          "value": {
-            "es": "90 s, 4K",
-            "en": "90 s, 4K"
-          }
-        },
-        {
-          "label": {
-            "es": "Stack",
-            "en": "Stack"
-          },
-          "value": {
-            "es": "After Effects, Illustrator",
-            "en": "After Effects, Illustrator"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "El encargo",
-            "en": "The brief"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Una apertura que funcionara igual de bien en una sala y en un teléfono, sin dos versiones distintas del mismo material.",
-              "en": "Placeholder copy. An opening that worked as well in a room as on a phone, without two separate cuts of the same material."
-            }
-          ]
-        },
-        {
-          "heading": {
-            "es": "Cómo se resolvió",
-            "en": "How it landed"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Un único gesto de cámara repetido con seis variaciones: reconocible en el segundo pase, no obvio en el primero.",
-              "en": "Placeholder copy. A single camera gesture repeated in six variations — recognisable on the second pass, not obvious on the first."
-            }
-          ]
-        }
-      ],
-      "metrics": [
-        {
-          "value": "90 s",
-          "label": {
-            "es": "duración",
-            "en": "runtime"
-          }
-        }
-      ],
-      "gallery": [
-        {
-          "src": "/media/placeholder-05.svg",
-          "alt": {
-            "es": "Fotograma placeholder",
-            "en": "Placeholder frame"
-          },
-          "wide": true
-        }
-      ]
-    }
-  },
-  {
-    "id": "meridian-product-site",
-    "title": {
-      "es": "Meridian — Sitio de Producto",
-      "en": "Meridian Product Site"
-    },
-    "summary": {
-      "es": "Un sitio que marketing puede editar sin abrir un ticket.",
-      "en": "A site marketing can edit without opening a ticket."
-    },
-    "axis": "engineering",
-    "tier": "tertiary",
-    "client": "Placeholder Co.",
-    "year": 2024,
-    "roles": [
-      {
-        "es": "Front-end Development",
+        "es": "Desarrollo front-end",
         "en": "Front-end Development"
       },
       {
-        "es": "Web",
-        "en": "Web"
+        "es": "Implementación WordPress",
+        "en": "WordPress Implementation"
       }
     ],
-    "poster": "/media/placeholder-04.svg",
+    "poster": "/media/gordo-agencia-servicios.webp",
     "order": 8,
     "detail": {
       "lead": {
-        "es": "El sitio anterior era rápido de ver y lento de cambiar. Este invierte las dos cosas.",
-        "en": "The old site was fast to look at and slow to change. This one inverts both."
+        "es": "Implementé el front-end de Gordo Agencia a partir de un diseño en Figma y contenidos provistos, llevándolos a un sitio responsive en WordPress que conserva el carácter visual de la marca y puede administrarse desde el backend.",
+        "en": "I implemented Gordo Agencia's front end from a supplied Figma design and content, turning them into a responsive WordPress site that preserves the brand's visual character and can be managed from the backend."
       },
       "facts": [
         {
@@ -768,8 +180,8 @@
             "en": "Role"
           },
           "value": {
-            "es": "Diseño y desarrollo",
-            "en": "Design and build"
+            "es": "Desarrollo front-end e implementación WordPress",
+            "en": "Front-end development and WordPress implementation"
           }
         },
         {
@@ -778,87 +190,8 @@
             "en": "Stack"
           },
           "value": {
-            "es": "Astro, TypeScript",
-            "en": "Astro, TypeScript"
-          }
-        }
-      ],
-      "sections": [
-        {
-          "heading": {
-            "es": "La decisión",
-            "en": "The call"
-          },
-          "body": [
-            {
-              "es": "Texto placeholder. Menos componentes, mejor nombrados. Un editor no necesita treinta bloques: necesita seis que no se puedan usar mal.",
-              "en": "Placeholder copy. Fewer components, better named. An editor doesn't need thirty blocks — they need six that can't be used wrong."
-            }
-          ]
-        }
-      ],
-      "metrics": [
-        {
-          "value": "98",
-          "label": {
-            "es": "Lighthouse",
-            "en": "Lighthouse"
-          }
-        }
-      ],
-      "gallery": []
-    }
-  },
-  {
-    "id": "revenue-attribution",
-    "title": {
-      "es": "Modelo de Atribución",
-      "en": "Revenue Attribution Model"
-    },
-    "summary": {
-      "es": "Reemplazar la discusión mensual sobre qué canal funcionó por una tabla que nadie discute.",
-      "en": "Replacing the monthly argument about which channel worked with a table nobody argues with."
-    },
-    "axis": "ops",
-    "tier": "primary",
-    "client": "Grupo placeholder",
-    "year": 2023,
-    "roles": [
-      {
-        "es": "Marketing Ops",
-        "en": "Marketing Ops"
-      },
-      {
-        "es": "Analítica",
-        "en": "Analytics"
-      }
-    ],
-    "poster": "/media/placeholder-06.svg",
-    "order": 9,
-    "detail": {
-      "lead": {
-        "es": "No faltaban datos: sobraban tableros. Cada equipo llegaba a la reunión con su propia versión del mismo trimestre.",
-        "en": "There was no shortage of data — there was a surplus of dashboards. Every team arrived at the meeting with its own version of the same quarter."
-      },
-      "facts": [
-        {
-          "label": {
-            "es": "Rol",
-            "en": "Role"
-          },
-          "value": {
-            "es": "Modelo y reporting",
-            "en": "Model and reporting"
-          }
-        },
-        {
-          "label": {
-            "es": "Stack",
-            "en": "Stack"
-          },
-          "value": {
-            "es": "GA4, GTM, Looker",
-            "en": "GA4, GTM, Looker"
+            "es": "WordPress, Elementor, ACF, Jitter",
+            "en": "WordPress, Elementor, ACF, Jitter"
           }
         },
         {
@@ -867,67 +200,95 @@
             "en": "Scope"
           },
           "value": {
-            "es": "6 canales, 2 regiones",
-            "en": "6 channels, 2 regions"
+            "es": "Home, Soluciones, Portfolio, Gorditos y Contacto",
+            "en": "Home, Services, Portfolio, Team, and Contact"
           }
         }
       ],
       "sections": [
         {
           "heading": {
-            "es": "Antes",
-            "en": "Before"
+            "es": "El punto de partida",
+            "en": "The starting point"
           },
           "body": [
             {
-              "es": "Texto placeholder. Tres fuentes de verdad y ninguna autoridad para decidir cuál mandaba cuando se contradecían.",
-              "en": "Placeholder copy. Three sources of truth and no authority to decide which one won when they disagreed."
+              "es": "El diseño y los contenidos ya estaban definidos. El desafío era traducir esa identidad expresiva —tipografía de gran escala, stickers, tickers y recursos animados— a una experiencia consistente en escritorio, tablet y mobile, sin perder capacidad de edición.",
+              "en": "The design and content were already defined. The challenge was translating that expressive identity —large-scale type, stickers, tickers, and animated elements— into a consistent desktop, tablet, and mobile experience without sacrificing editability."
             }
           ]
         },
         {
           "heading": {
-            "es": "Qué se hizo",
-            "en": "What was done"
+            "es": "La implementación",
+            "en": "The implementation"
           },
           "body": [
             {
-              "es": "Texto placeholder. Se definió el modelo primero y se instrumentó después, que es el orden que casi nunca se respeta.",
-              "en": "Placeholder copy. The model got defined first and instrumented second, which is the order almost nobody respects."
-            },
+              "es": "Construí las cinco secciones del sitio en WordPress con Elementor y ACF, ajusté su comportamiento responsive e integré animaciones Lottie producidas con Jitter. El portfolio quedó resuelto como contenido administrable, con categorías, fichas que se abren en off-canvas y un manual de carga para el equipo.",
+              "en": "I built the site's five sections in WordPress with Elementor and ACF, refined their responsive behaviour, and integrated Lottie animations produced with Jitter. The portfolio was implemented as manageable content, with categories, off-canvas project details, and an upload guide for the team."
+            }
+          ]
+        },
+        {
+          "heading": {
+            "es": "Publicación y operación",
+            "en": "Launch and operations"
+          },
+          "body": [
             {
-              "es": "Texto placeholder. La documentación quedó al lado del tablero, no en una carpeta aparte.",
-              "en": "Placeholder copy. The documentation sits beside the dashboard, not in a folder of its own."
+              "es": "El trabajo incluyó entorno de desarrollo en Hostinger, migración al dominio definitivo, caché con LiteSpeed y hardening con Wordfence. También configuré SEO técnico con Yoast, datos canónicos, sitemap, Analytics, Search Console y Clarity; los formularios quedaron conectados con Google Sheets y correo; además, se implementó una automatización de emails en Make.",
+              "en": "The work included a Hostinger development environment, migration to the final domain, LiteSpeed caching, and Wordfence hardening. I also configured technical SEO with Yoast, canonical data, a sitemap, Analytics, Search Console, and Clarity; forms were connected to Google Sheets and email, while a separate email automation was implemented in Make."
+            }
+          ]
+        },
+        {
+          "heading": {
+            "es": "Resultado",
+            "en": "Outcome"
+          },
+          "body": [
+            {
+              "es": "El sitio quedó publicado con una implementación responsive, animaciones alineadas con la identidad de Gordo y un backend preparado para que el equipo actualice proyectos y contenidos sin intervenir el front-end.",
+              "en": "The site launched with a responsive implementation, animation aligned with Gordo's identity, and a backend that lets the team update projects and content without touching the front end."
             }
           ]
         }
       ],
-      "metrics": [
-        {
-          "value": "3 → 1",
-          "label": {
-            "es": "fuentes de verdad",
-            "en": "sources of truth"
-          }
-        },
-        {
-          "value": "−4 d",
-          "label": {
-            "es": "cierre mensual",
-            "en": "monthly close"
-          }
-        }
-      ],
+      "metrics": [],
       "gallery": [
         {
-          "src": "/media/placeholder-03.svg",
+          "src": "/media/gordo-agencia-brand-management.webp",
           "alt": {
-            "es": "Tablero placeholder",
-            "en": "Placeholder dashboard"
+            "es": "Vista de la sección Brand Management del sitio de Gordo Agencia",
+            "en": "View of the Brand Management section on the Gordo Agencia website"
+          },
+          "caption": {
+            "es": "Detalle de Soluciones con navegación por servicios y contenido administrable.",
+            "en": "Services detail with service navigation and editable content."
+          },
+          "wide": true
+        },
+        {
+          "src": "/media/gordo-agencia-home.webp",
+          "alt": {
+            "es": "Hero de la Home de Gordo Agencia con el mensaje Creamos proyectos gordos, pensamos a lo grande",
+            "en": "Gordo Agencia homepage hero with the message We create big projects, we think big"
+          },
+          "caption": {
+            "es": "La Home traduce la identidad visual del Figma a una composición responsive con stickers y animación.",
+            "en": "The homepage translates the Figma's visual identity into a responsive composition with stickers and animation."
           },
           "wide": true
         }
-      ]
+      ],
+      "link": {
+        "label": {
+          "es": "Ver el sitio en vivo",
+          "en": "View the live site"
+        },
+        "href": "https://gordoagencia.com/"
+      }
     }
   }
 ]

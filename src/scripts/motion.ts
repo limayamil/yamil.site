@@ -208,6 +208,84 @@ function initVideos(): void {
   tiles.forEach((tile) => observer.observe(tile));
 }
 
+/* -- 2b. Case image pan and rotation ------------------------------------- */
+
+/**
+ * A case's poster and gallery images form one slow preview in both the bento
+ * and the detail hero. Timers only exist while a host is actually visible;
+ * background tabs, filtered tiles and closed cases do no work and resume with
+ * a full, unhurried hold instead of jumping ahead.
+ */
+function initCaseMedia(): void {
+  const hosts = Array.from(document.querySelectorAll<HTMLElement>('[data-case-media]'));
+  if (hosts.length === 0) return;
+
+  const hold = 8_000;
+  const timers = new Map<HTMLElement, number>();
+  const visible = new Set<HTMLElement>();
+
+  const framesOf = (host: HTMLElement) =>
+    Array.from(host.querySelectorAll<HTMLElement>('[data-media-slide]'));
+
+  const stopRotation = (host: HTMLElement) => {
+    const timer = timers.get(host);
+    if (timer !== undefined) window.clearTimeout(timer);
+    timers.delete(host);
+    delete host.dataset.mediaRunning;
+  };
+
+  const schedule = (host: HTMLElement) => {
+    stopRotation(host);
+    if (reducedMotion.matches || document.hidden || !visible.has(host)) return;
+
+    host.dataset.mediaRunning = 'true';
+    const frames = framesOf(host);
+    if (frames.length < 2) return;
+
+    timers.set(
+      host,
+      window.setTimeout(() => {
+        const current = Math.max(
+          0,
+          frames.findIndex((frame) => frame.dataset.active === 'true'),
+        );
+        frames[current].dataset.active = 'false';
+        frames[(current + 1) % frames.length].dataset.active = 'true';
+        schedule(host);
+      }, hold),
+    );
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const host = entry.target as HTMLElement;
+        if (entry.isIntersecting) {
+          visible.add(host);
+          schedule(host);
+        } else {
+          visible.delete(host);
+          stopRotation(host);
+        }
+      }
+    },
+    { threshold: 0.12 },
+  );
+
+  hosts.forEach((host) => observer.observe(host));
+
+  document.addEventListener('visibilitychange', () => {
+    for (const host of hosts) {
+      if (document.hidden) stopRotation(host);
+      else if (visible.has(host)) schedule(host);
+    }
+  });
+
+  reducedMotion.addEventListener('change', () => {
+    for (const host of hosts) schedule(host);
+  });
+}
+
 /* -- 3. Local clock ------------------------------------------------------- */
 
 function initClock(): void {
@@ -788,6 +866,7 @@ function initTrack(): void {
 
 initReveals();
 initVideos();
+initCaseMedia();
 initClock();
 void initWeather();
 initGlosses();

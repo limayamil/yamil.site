@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crear caso de portfolio"
+  short_description: "Crea casos bilingües y optimiza sus imágenes"
+  default_prompt: "Usa $create-portfolio-case para crear un nuevo caso bilingüe a partir de mis imágenes e información."

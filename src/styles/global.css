@@ -1915,7 +1915,7 @@ html[data-lang='es'] [data-i18n='en'] {
   z-index: 0;
 }
 
-.tile-media img,
+.tile-media .case-media-frame,
 .tile-media video {
   position: absolute;
   inset: 0;
@@ -1991,11 +1991,11 @@ html[data-lang='es'] [data-i18n='en'] {
   }
 }
 
-.tile-link:hover .tile-media img,
+.tile-link:hover .case-media-frame,
 .tile-link:hover .tile-media video,
-.tile-link:focus-visible .tile-media img,
+.tile-link:focus-visible .case-media-frame,
 .tile-link:focus-visible .tile-media video {
-  transform: scale(1.05);
+  transform: scale(1.025);
 }
 
 .tile-body {
@@ -2272,13 +2272,68 @@ html[data-lang='es'] [data-i18n='en'] {
   pointer-events: none;
 }
 
-.case-hero img,
+.case-hero .case-media-frame,
 .case-hero video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Shared tile/hero slideshow. The frame owns the crossfade while its image
+   owns the slow Ken Burns movement, so neither transform has to fight the
+   tile's hover scale. Only the active image is animated; changing slides
+   restarts the pan from a composed, fully covered edge. */
+.case-media-frame {
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 1.4s var(--ease-io),
+    transform 0.7s var(--ease-out);
+}
+
+.case-media-frame[data-active='true'] {
+  z-index: 1;
+  opacity: 1;
+}
+
+.case-media-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  will-change: transform;
+}
+
+.case-media[data-media-running='true'] .case-media-frame[data-active='true'] img {
+  animation: case-media-pan 14s cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+.case-media-frame:nth-child(3n + 2) img {
+  --pan-x-start: 1.6%;
+  --pan-y-start: -1.1%;
+  --pan-x-end: -1.4%;
+  --pan-y-end: 1%;
+}
+
+.case-media-frame:nth-child(3n) img {
+  --pan-x-start: -0.8%;
+  --pan-y-start: 1.4%;
+  --pan-x-end: 1.2%;
+  --pan-y-end: -1.2%;
+}
+
+@keyframes case-media-pan {
+  from {
+    transform: scale(1.08)
+      translate3d(var(--pan-x-start, -1.5%), var(--pan-y-start, -1%), 0);
+  }
+  to {
+    transform: scale(1.13)
+      translate3d(var(--pan-x-end, 1.5%), var(--pan-y-end, 1%), 0);
+  }
 }
 
 .case-hero video {
@@ -2465,7 +2520,7 @@ html[data-lang='es'] [data-i18n='en'] {
     transform: none;
   }
 
-  .tile-link:hover .tile-media img,
+  .tile-link:hover .case-media-frame,
   .tile-link:hover .tile-media video,
   .tile-link:hover .tile-title,
   .tile-link:hover .tile-cue,
@@ -2483,6 +2538,11 @@ html[data-lang='es'] [data-i18n='en'] {
 
   .tile-media[data-placeholder]::before {
     display: none;
+  }
+
+  .case-media-frame img {
+    animation: none !important;
+    transform: none !important;
   }
 
   /* The reveal wave is the only thing the stagger buys, and it is exactly the

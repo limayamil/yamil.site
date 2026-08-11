@@ -26,6 +26,10 @@ interface Props {
 const { project, slug, prev, next } = Astro.props;
 const { title, axis, client, year, roles, poster, video, detail } = project;
 
+const slides = [poster, ...detail.gallery.map((shot) => shot.src)].filter(
+  (src, slideIndex, all) => all.indexOf(src) === slideIndex,
+);
+
 const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? axis;
 ---
 
@@ -63,8 +67,32 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
     </ul>
   </header>
 
-  <div class="case-hero" data-case-hero {...video ? {} : { 'data-placeholder': '' }}>
-    <img src={poster} alt="" width="1600" height="1000" loading="lazy" decoding="async" />
+  <div
+    class="case-hero case-media"
+    data-case-hero
+    data-case-media
+    {...video ? {} : { 'data-placeholder': '' }}
+  >
+    {
+      slides.map((src, slideIndex) => (
+        <div
+          class="case-media-frame"
+          data-media-slide
+          data-active={slideIndex === 0 ? 'true' : 'false'}
+          aria-hidden="true"
+        >
+          <img
+            src={src}
+            alt=""
+            width="1600"
+            height="1000"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
+          />
+        </div>
+      ))
+    }
     {
       video && (
         <video src={video} poster={poster} muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" />
