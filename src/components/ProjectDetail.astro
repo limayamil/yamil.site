@@ -12,8 +12,8 @@
  * rect of whichever tile was clicked.
  */
 import type { CollectionEntry } from 'astro:content';
-import { profile } from '../data/profile';
 import Bilingual from './Bilingual.astro';
+import Doodle from './Doodle.astro';
 import ExternalArrow from './ExternalArrow.astro';
 
 interface Props {
@@ -24,13 +24,14 @@ interface Props {
 }
 
 const { project, slug, prev, next } = Astro.props;
-const { title, axis, client, year, roles, poster, video, detail } = project;
+const { title, year, roles, poster, video, detail } = project;
 
 const slides = [poster, ...detail.gallery.map((shot) => shot.src)].filter(
   (src, slideIndex, all) => all.indexOf(src) === slideIndex,
 );
 
-const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? axis;
+const outcomeSectionIndex = detail.sections.length - 1;
+
 ---
 
 <article class="case" data-case={slug} hidden>
@@ -46,56 +47,78 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
     <Bilingual es="Volver a los trabajos" en="Back to work" />
   </button>
 
-  <header class="case-head case-enter" style="--i:1">
-    <p class="label case-kicker">
-      <span>{axisTitle}</span>
-      <span>{year}</span>
-      {client && <span>{client}</span>}
-    </p>
-    <h2 class="case-title display"><Bilingual es={title.es} en={title.en} /></h2>
-    <p class="case-lead prose-tight">
-      <Bilingual es={detail.lead.es} en={detail.lead.en} />
-    </p>
-    <ul class="case-roles">
+  <div class="case-head-row">
+    <header class="case-head case-enter" style="--i:1">
+      <p class="label case-kicker">
+        <span><Bilingual es="Caso" en="Case study" /></span>
+        <span>{year}</span>
+      </p>
+      <h2 class="case-title display"><Bilingual es={title.es} en={title.en} /></h2>
+      <p class="case-lead prose-tight">
+        <Bilingual es={detail.lead.es} en={detail.lead.en} />
+      </p>
+      <ul class="case-roles">
+        {
+          roles.map((role) => (
+            <li>
+              <Bilingual es={role.es} en={role.en} />
+            </li>
+          ))
+        }
+      </ul>
+    </header>
+
+    {
+      detail.clientLogos.length > 0 && (
+        <div class="case-head-logos case-enter" style="--i:1" aria-hidden="true">
+          {detail.clientLogos.map((logo) => (
+            <img class="case-head-logo" src={logo.src} alt="" loading="eager" decoding="async" />
+          ))}
+        </div>
+      )
+    }
+  </div>
+
+  <div class="case-hero-wrap">
+    <div
+      class="case-hero case-media"
+      data-case-hero
+      data-case-media
+      {...video ? {} : { 'data-placeholder': '' }}
+    >
       {
-        roles.map((role) => (
-          <li>
-            <Bilingual es={role.es} en={role.en} />
-          </li>
+        slides.map((src, slideIndex) => (
+          <div
+            class="case-media-frame"
+            data-media-slide
+            data-active={slideIndex === 0 ? 'true' : 'false'}
+            aria-hidden="true"
+          >
+            <img
+              src={src}
+              alt=""
+              width="1600"
+              height="1000"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+            />
+          </div>
         ))
       }
-    </ul>
-  </header>
+      {
+        video && (
+          <video src={video} poster={poster} muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" />
+        )
+      }
+    </div>
 
-  <div
-    class="case-hero case-media"
-    data-case-hero
-    data-case-media
-    {...video ? {} : { 'data-placeholder': '' }}
-  >
     {
-      slides.map((src, slideIndex) => (
-        <div
-          class="case-media-frame"
-          data-media-slide
-          data-active={slideIndex === 0 ? 'true' : 'false'}
-          aria-hidden="true"
-        >
-          <img
-            src={src}
-            alt=""
-            width="1600"
-            height="1000"
-            loading="lazy"
-            decoding="async"
-            fetchpriority="low"
-          />
-        </div>
-      ))
-    }
-    {
-      video && (
-        <video src={video} poster={poster} muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" />
+      detail.heroNote && (
+        <p class="case-hero-note hand case-enter" style="--i:2">
+          <Doodle name="arrowLeft" class="doodle-enter" />
+          <Bilingual es={detail.heroNote.es} en={detail.heroNote.en} />
+        </p>
       )
     }
   </div>
@@ -103,9 +126,15 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
   {
     detail.metrics.length > 0 && (
       <ul class="case-metrics case-enter" style="--i:2">
-        {detail.metrics.map((metric) => (
+        {detail.metrics.map((metric, metricIndex) => (
           <li>
-            <span class="case-metric-value">{metric.value}</span>
+            {/* Counts up from zero on open — job 11 in `motion.ts`. The value is
+                parsed out of the text, so `+40%` counts the 40 and keeps both
+                the sign and the unit. */}
+            <span class:list={['case-metric-value', metricIndex === 0 && 'case-metric-mark']}>
+              <span data-counter>{metric.value}</span>
+              {metricIndex === 0 && <Doodle name="oval" class="doodle-enter" />}
+            </span>
             <span class="label case-metric-label">
               <Bilingual es={metric.label.es} en={metric.label.en} />
             </span>
@@ -119,16 +148,34 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
     {
       detail.sections.length > 0 && (
         <div class="case-sections">
-          {detail.sections.map((section) => (
-            <section class="case-section">
-              <h3 class="case-heading">
-                <Bilingual es={section.heading.es} en={section.heading.en} />
-              </h3>
+          {detail.sections.map((section, sectionIndex) => (
+            <section class:list={['case-section', sectionIndex === outcomeSectionIndex && 'case-section-outcome']}>
+              <div class="case-section-head">
+                <span class="label case-section-index">
+                  {String(sectionIndex + 1).padStart(2, '0')}
+                </span>
+                <h3 class="case-heading">
+                  {sectionIndex === outcomeSectionIndex ? (
+                    <span class="case-outcome-mark">
+                      <Bilingual es={section.heading.es} en={section.heading.en} />
+                      <Doodle name="highlight" class="doodle-enter doodle-wipe" />
+                    </span>
+                  ) : (
+                    <Bilingual es={section.heading.es} en={section.heading.en} />
+                  )}
+                </h3>
+              </div>
               {section.body.map((paragraph) => (
                 <p class="prose-tight">
                   <Bilingual es={paragraph.es} en={paragraph.en} />
                 </p>
               ))}
+              {section.note && (
+                <p class="case-section-note hand">
+                  <Doodle name="arrowUp" class="doodle-enter" />
+                  <Bilingual es={section.note.es} en={section.note.en} />
+                </p>
+              )}
             </section>
           ))}
         </div>
@@ -137,18 +184,23 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
 
     {
       detail.facts.length > 0 && (
-        <dl class="case-facts">
-          {detail.facts.map((fact) => (
-            <div>
-              <dt class="label">
-                <Bilingual es={fact.label.es} en={fact.label.en} />
-              </dt>
-              <dd>
-                <Bilingual es={fact.value.es} en={fact.value.en} />
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <aside class="case-facts-card">
+          <p class="case-facts-title hand">
+            <Bilingual es="Ficha técnica" en="Technical notes" />
+          </p>
+          <dl class="case-facts">
+            {detail.facts.map((fact) => (
+              <div>
+                <dt class="label">
+                  <Bilingual es={fact.label.es} en={fact.label.en} />
+                </dt>
+                <dd>
+                  <Bilingual es={fact.value.es} en={fact.value.en} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </aside>
       )
     }
   </div>
@@ -176,6 +228,12 @@ const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? ax
               <figcaption class="case-caption">
                 <Bilingual es={shot.caption.es} en={shot.caption.en} />
               </figcaption>
+            )}
+            {shot.note && (
+              <p class="case-shot-note hand">
+                <Doodle name="arrowLeft" class="doodle-enter" />
+                <Bilingual es={shot.note.es} en={shot.note.en} />
+              </p>
             )}
           </figure>
         ))}

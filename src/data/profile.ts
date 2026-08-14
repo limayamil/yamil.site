@@ -32,9 +32,12 @@ export interface Capability {
   tools: string[];
 }
 
+export type ContactIconName = 'email' | 'linkedin';
+
 export interface Link {
   label: string;
   href: string;
+  icon: ContactIconName;
   external?: boolean;
 }
 
@@ -114,8 +117,7 @@ export const profile: Profile = {
     // is several words, so `Intro.astro` renders it with `.gloss-role` rather
     // than the single-word `.gloss` pattern — see the comment there.
     // One sentence, and short enough to stay one: it renders as the single line
-    // of copy inside `.now`, with the live dot at its head standing in for the
-    // "actualmente" the old phrasing spent three words on.
+    // of copy inside `.now`; the green frame carries the current-status cue.
     line: {
       es: 'Ahora en {company}, como [Technical Marketing Operations Lead](Operaciones entre marketing, producto y web: automatizaciones, integraciones y el reporting que las vuelve medibles.).',
       en: 'Now at {company}, as [Technical Marketing Operations Lead](Operations across marketing, product and web: automations, integrations and the reporting that makes them measurable.).',
@@ -175,8 +177,13 @@ export const profile: Profile = {
   },
 
   links: [
-    { label: 'Email', href: 'mailto:yamillues@gmail.com' },
-    { label: 'LinkedIn', href: 'https://www.linkedin.com/in/yamillues/', external: true },
+    { label: 'Email', href: 'mailto:yamillues@gmail.com', icon: 'email' },
+    {
+      label: 'LinkedIn',
+      href: 'https://www.linkedin.com/in/yamillues/',
+      icon: 'linkedin',
+      external: true,
+    },
     // TODO: add Instagram / Read.cv here once the real handles exist. Better an
     // absent link than one that 404s.
   ],
@@ -195,5 +202,5 @@ export const meta = {
     es: 'Diseño, construyo y automatizo: interfaces, motion y operaciones de marketing que le sacan el trabajo manual del medio a los equipos.',
     en: 'I design, build and automate: interfaces, motion and marketing operations that take manual work off a team’s plate.',
   },
-  url: 'https://yamil.site',
+  url: 'https://yamil.me',
 } as const;

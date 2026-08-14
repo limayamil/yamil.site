@@ -24,7 +24,7 @@ interface Props {
 }
 
 const { project, slug, index } = Astro.props;
-const { title, summary, axis, tier, shape, year, poster, video, detail } = project;
+const { title, summary, axis, tier, shape, year, poster, coverTint, video, detail } = project;
 
 // The tile borrows the case gallery as a quiet preview. Keep the poster first
 // (it is the meaningful initial frame) and avoid rendering a duplicate when a
@@ -47,7 +47,7 @@ const eager = index < 3;
   data-shape={shape}
   data-axis={axis}
   data-slug={slug}
-  style={`--i:${index}`}
+  style={`--i:${index};--tile-tint:${coverTint.join(' ')}`}
 >
   <a class="tile-link" href={`#caso/${slug}`}>
     <div

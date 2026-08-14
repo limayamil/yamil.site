@@ -1,0 +1,30 @@
+---
+import Bilingual from './Bilingual.astro';
+---
+
+<div class="sound-controls" data-sound-controls data-enabled="true">
+  <button
+    type="button"
+    class="sound-toggle"
+    data-sound-toggle
+    aria-pressed="true"
+  >
+    <svg class="sound-icon" width="18" height="18" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path
+        d="M2 5.5h2.1L7 3v8L4.1 8.5H2z"
+        stroke="currentColor"
+        stroke-width="1.1"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+      <path
+        class="sound-wave"
+        d="M9 5c.6.5.9 1.2.9 2S9.6 8.5 9 9m1.8-5.7c1 1 1.5 2.2 1.5 3.7s-.5 2.7-1.5 3.7"
+        stroke="currentColor"
+        stroke-width="1.1"
+        stroke-linecap="round"></path>
+    </svg>
+    <span class="sr-only">
+      <Bilingual es="Activar o silenciar sonido" en="Toggle sound" />
+    </span>
+  </button>
+</div>

@@ -29,11 +29,16 @@
       }
     ],
     "poster": "/media/asofix-automatizacion.webp",
+    "coverTint": [5, 17, 26],
     "order": 2,
     "detail": {
       "lead": {
         "es": "Una integración comercial unidireccional conecta HubSpot con Asofix a través de Make y Google Sheets. Desde octubre de 2025, la automatización procesó 11.432 leads con validación y trazabilidad en cada envío.",
         "en": "A one-way commercial integration connects HubSpot to Asofix through Make and Google Sheets. Since October 2025, the automation has processed 11,432 leads with validation and traceability on every submission."
+      },
+      "heroNote": {
+        "es": "HubSpot → Make → Asofix",
+        "en": "HubSpot → Make → Asofix"
       },
       "facts": [
         {
@@ -90,7 +95,11 @@
               "es": "Diseñé e implementé un flujo unidireccional en Make. Antes de cada envío, el escenario valida los campos mínimos, mapea los orígenes y normaliza los datos mediante Google Sheets; recién entonces construye la solicitud y la envía a la API de Asofix.",
               "en": "I designed and implemented a one-way workflow in Make. Before each submission, the scenario validates required fields, maps lead sources, and normalizes data through Google Sheets; only then does it build the request and send it to the Asofix API."
             }
-          ]
+          ],
+          "note": {
+            "es": "validar antes de enviar",
+            "en": "validate before sending"
+          }
         },
         {
           "heading": {
@@ -137,7 +146,21 @@
             "es": "Flujo de validación, normalización y envío de deals desde HubSpot hacia Asofix.",
             "en": "Workflow for validating, normalizing, and sending deals from HubSpot to Asofix."
           },
+          "note": {
+            "es": "cada operación deja rastro",
+            "en": "every operation leaves a trace"
+          },
           "wide": true
+        }
+      ],
+      "clientLogos": [
+        {
+          "src": "/media/logos/asofix-icon.svg",
+          "alt": "Asofix"
+        },
+        {
+          "src": "/media/logos/asofix-wordmark.svg",
+          "alt": "Asofix"
         }
       ]
     }
@@ -167,11 +190,16 @@
       }
     ],
     "poster": "/media/gordo-agencia-servicios.webp",
+    "coverTint": [18, 20, 5],
     "order": 8,
     "detail": {
       "lead": {
         "es": "Implementé el front-end de Gordo Agencia a partir de un diseño en Figma y contenidos provistos, llevándolos a un sitio responsive en WordPress que conserva el carácter visual de la marca y puede administrarse desde el backend.",
         "en": "I implemented Gordo Agencia's front end from a supplied Figma design and content, turning them into a responsive WordPress site that preserves the brand's visual character and can be managed from the backend."
+      },
+      "heroNote": {
+        "es": "identidad expresiva, backend editable",
+        "en": "expressive identity, editable backend"
       },
       "facts": [
         {
@@ -228,7 +256,11 @@
               "es": "Construí las cinco secciones del sitio en WordPress con Elementor y ACF, ajusté su comportamiento responsive e integré animaciones Lottie producidas con Jitter. El portfolio quedó resuelto como contenido administrable, con categorías, fichas que se abren en off-canvas y un manual de carga para el equipo.",
               "en": "I built the site's five sections in WordPress with Elementor and ACF, refined their responsive behaviour, and integrated Lottie animations produced with Jitter. The portfolio was implemented as manageable content, with categories, off-canvas project details, and an upload guide for the team."
             }
-          ]
+          ],
+          "note": {
+            "es": "cinco secciones, un sistema",
+            "en": "five sections, one system"
+          }
         },
         {
           "heading": {
@@ -267,6 +299,10 @@
             "es": "Detalle de Soluciones con navegación por servicios y contenido administrable.",
             "en": "Services detail with service navigation and editable content."
           },
+          "note": {
+            "es": "motion sin perder edición",
+            "en": "motion without losing editability"
+          },
           "wide": true
         },
         {
@@ -289,6 +325,186 @@
         },
         "href": "https://gordoagencia.com/"
       }
+    }
+  },
+  {
+    "id": "club-mendio-web",
+    "title": {
+      "es": "Club Mendio — Sitio web",
+      "en": "Club Mendio — Website"
+    },
+    "summary": {
+      "es": "El front-end que llevó un diseño en Figma a un sitio WordPress claro, responsive y orientado a la reserva.",
+      "en": "A front end that turned a Figma design into a clear, responsive WordPress site built around bookings."
+    },
+    "axis": "engineering",
+    "tier": "secondary",
+    "shape": "horizontal",
+    "client": "Club Mendio",
+    "year": 2026,
+    "roles": [
+      {
+        "es": "Desarrollo front-end",
+        "en": "Front-end Development"
+      },
+      {
+        "es": "Implementación WordPress",
+        "en": "WordPress Implementation"
+      }
+    ],
+    "poster": "/media/club-mendio-deportes.webp",
+    "coverTint": [4, 20, 21],
+    "featured": true,
+    "order": 5,
+    "detail": {
+      "lead": {
+        "es": "Implementé el front-end de Club Mendio a partir de un diseño en Figma, convirtiendo la propuesta deportiva, social y natural del club en un sitio WordPress responsive y orientado a la reserva.",
+        "en": "I implemented Club Mendio's front end from a Figma design, turning the club's sports, social, and nature-led proposition into a responsive WordPress site built around bookings."
+      },
+      "heroNote": {
+        "es": "del Figma a la reserva",
+        "en": "from Figma to booking"
+      },
+      "facts": [
+        {
+          "label": {
+            "es": "Rol",
+            "en": "Role"
+          },
+          "value": {
+            "es": "Desarrollo front-end e implementación WordPress",
+            "en": "Front-end development and WordPress implementation"
+          }
+        },
+        {
+          "label": {
+            "es": "Stack",
+            "en": "Stack"
+          },
+          "value": {
+            "es": "WordPress, Elementor",
+            "en": "WordPress, Elementor"
+          }
+        },
+        {
+          "label": {
+            "es": "Diseño",
+            "en": "Design"
+          },
+          "value": {
+            "es": "Figma provisto por el cliente",
+            "en": "Client-supplied Figma"
+          }
+        },
+        {
+          "label": {
+            "es": "Alcance",
+            "en": "Scope"
+          },
+          "value": {
+            "es": "Inicio, El club, Actividades, Experiencia Mendio y Contacto",
+            "en": "Home, The Club, Activities, Mendio Experience, and Contact"
+          }
+        }
+      ],
+      "sections": [
+        {
+          "heading": {
+            "es": "El punto de partida",
+            "en": "The starting point"
+          },
+          "body": [
+            {
+              "es": "El diseño visual ya estaba definido en Figma. El desafío era llevarlo a producción y presentar con claridad una propuesta amplia: un predio de 17.000 m² donde conviven fútbol, pádel, gimnasio, naturaleza y vida social.",
+              "en": "The visual design was already defined in Figma. The challenge was bringing it to production while clearly presenting a broad proposition: a 17,000 m² site where football, padel, a gym, nature, and social life come together."
+            }
+          ]
+        },
+        {
+          "heading": {
+            "es": "La implementación",
+            "en": "The implementation"
+          },
+          "body": [
+            {
+              "es": "Construí el front-end en WordPress con Elementor y adapté la composición a distintos tamaños de pantalla. La implementación abarca la Home y las páginas El club, Actividades, Experiencia Mendio y Contacto, con una navegación y un sistema visual consistentes entre secciones.",
+              "en": "I built the front end in WordPress with Elementor and adapted the composition across screen sizes. The implementation covers the Home, The Club, Activities, Mendio Experience, and Contact pages, with consistent navigation and a shared visual system throughout."
+            }
+          ]
+        },
+        {
+          "heading": {
+            "es": "Contenido y conversión",
+            "en": "Content and conversion"
+          },
+          "body": [
+            {
+              "es": "La arquitectura separa la historia del club, sus actividades y la experiencia social sin fragmentar el recorrido. Los accesos a fútbol, pádel y gimnasio conviven con llamados a reservar por WhatsApp, consultar academias y contactar al equipo.",
+              "en": "The architecture separates the club's story, activities, and social experience without breaking the journey apart. Entry points for football, padel, and the gym sit alongside calls to book through WhatsApp, ask about academies, and contact the team."
+            }
+          ],
+          "note": {
+            "es": "de explorar a reservar",
+            "en": "from browsing to booking"
+          }
+        },
+        {
+          "heading": {
+            "es": "Resultado",
+            "en": "Outcome"
+          },
+          "body": [
+            {
+              "es": "El sitio quedó publicado como una traducción fiel del Figma: presenta el proyecto, ordena la oferta deportiva y conduce desde la exploración hasta la reserva o la consulta en una experiencia coherente con la identidad de Club Mendio.",
+              "en": "The live site is a faithful translation of the Figma: it presents the project, organizes the sports offering, and takes visitors from exploration to booking or enquiry in an experience aligned with Club Mendio's identity."
+            }
+          ]
+        }
+      ],
+      "metrics": [],
+      "gallery": [
+        {
+          "src": "/media/club-mendio-experiencia.webp",
+          "alt": {
+            "es": "Mockup de la experiencia social y las actividades del sitio de Club Mendio",
+            "en": "Mockup of the social experience and activities on the Club Mendio website"
+          },
+          "caption": {
+            "es": "La propuesta combina deporte, accesibilidad y vida de club en una misma narrativa visual.",
+            "en": "The proposition brings sport, accessibility, and club life into one visual narrative."
+          },
+          "note": {
+            "es": "deporte + vida de club",
+            "en": "sport + club life"
+          },
+          "wide": true
+        },
+        {
+          "src": "/media/club-mendio-contacto.webp",
+          "alt": {
+            "es": "Mockup de la sección de contacto de Club Mendio con mapa y formulario",
+            "en": "Mockup of Club Mendio's contact section with a map and form"
+          },
+          "caption": {
+            "es": "Contacto reúne indicaciones de acceso, mapa y formulario en un cierre directo del recorrido.",
+            "en": "Contact brings together access directions, a map, and a form to close the journey directly."
+          },
+          "wide": true
+        }
+      ],
+      "link": {
+        "label": {
+          "es": "Ver el sitio en vivo",
+          "en": "View the live site"
+        },
+        "href": "https://clubmendio.com/"
+      },
+      "clientLogos": [
+        {
+          "src": "/media/logos/club-mendio.svg",
+          "alt": "Club Mendio"
+        }
+      ]
     }
   }
 ]

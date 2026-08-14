@@ -17,6 +17,8 @@ const localized = z.object({ es: z.string(), en: z.string() });
 const detail = z.object({
   /** Opening paragraph, set larger than the body. One or two sentences. */
   lead: localized,
+  /** Short handwritten callout attached to the hero. Keep it to 2–6 words. */
+  heroNote: localized.optional(),
   /** The spec sheet — Role / Client / Year / Stack. Rendered as a <dl>. */
   facts: z.array(z.object({ label: localized, value: localized })).default([]),
   /** The body of the case: a heading plus one or more paragraphs. */
@@ -25,6 +27,8 @@ const detail = z.object({
       z.object({
         heading: localized,
         body: z.array(localized),
+        /** One concise handwritten aside. At most one section uses it per case. */
+        note: localized.optional(),
       }),
     )
     .default([]),
@@ -36,6 +40,8 @@ const detail = z.object({
         src: z.string(),
         alt: localized,
         caption: localized.optional(),
+        /** One concise handwritten callout. At most one shot uses it per case. */
+        note: localized.optional(),
         /** Spans both columns of the gallery grid. */
         wide: z.boolean().default(false),
       }),
@@ -43,6 +49,13 @@ const detail = z.object({
     .default([]),
   /** Link out to the real work, where one exists. */
   link: z.object({ label: localized, href: z.string() }).optional(),
+  /**
+   * Client wordmarks shown top-right of the case header, alongside the
+   * title. Optional — most cases name the client in prose only. `alt` is a
+   * plain string, not `localized`: it is a company name, the same call
+   * `CompanyLogo.astro` makes for the track record.
+   */
+  clientLogos: z.array(z.object({ src: z.string(), alt: z.string() })).default([]),
 });
 
 const projects = defineCollection({
@@ -73,6 +86,15 @@ const projects = defineCollection({
     roles: z.array(localized),
     /** Static frame. Always required — it is also the video's poster. */
     poster: z.string(),
+    /**
+     * Dark RGB tint sampled from the poster's dominant colour. It colours the
+     * tile copy scrim without weakening the contrast guaranteed by its alpha.
+     */
+    coverTint: z.tuple([
+      z.number().int().min(0).max(255),
+      z.number().int().min(0).max(255),
+      z.number().int().min(0).max(255),
+    ]).default([18, 9, 6]),
     /** Optional loop. When present the tile plays it on hover / in view. */
     video: z.string().optional(),
     featured: z.boolean().default(true),

@@ -1,20 +1,33 @@
+import {
+  initSoundControls,
+  initUISFX,
+  playUISFXFromGesture,
+  UI_SOUND_CUES,
+} from './ui-sfx';
+
 /**
  * The site's entire runtime. Small jobs, no framework:
  *
  *   1. reveal elements once as they enter the viewport
  *   2. play a tile's loop on hover (pointer) or when centred (touch)
+ *  2b. pan case images and crossfade only after the next one is decoded
  *   3. keep the footer clock ticking
  *   4. fetch the footer's live weather reading once, on load
  *   5. drive the capability panel from whichever axis is hovered or focused,
  *      and commit that axis as the bento's filter when it is clicked
- *   6. open a bio gloss on tap, where there is no hover to open it
+ *   6. open a bio gloss as a compact modal on narrow touch screens
  *   7. run the ES/EN switch (the language is *resolved* by an inline script in
  *      Base.astro, which has to beat the first paint — this only reacts to
- *      clicks after that)
+ *      clicks after that), and replay the one part of the load-in that CSS
+ *      cannot replay by itself
  *   8. filter the bento grid by axis, re-packing it with a FLIP
  *   9. route `#caso/<slug>` between the grid and one open case
  *  10. route `#recorrido` between the bio and the track record — the same
  *      two-views-one-URL trick as 9, on the other column
+ *  11. count the figures — a case's metrics and the record's stats — up from
+ *      zero when the block they are in arrives
+ *  12. leave a small NERV easter egg in the console
+ *  13. reinforce meaningful, user-triggered state changes with optional UI SFX
  *
  * Nothing here reads layout during scroll, and every animated property is
  * transform/opacity, so the compositor handles the frames on its own. The one
@@ -24,6 +37,7 @@
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+const wideLayout = window.matchMedia('(min-width: 62rem)');
 
 /**
  * FLIP. Measure, mutate, then play the difference back as a transform.
@@ -220,18 +234,104 @@ function initCaseMedia(): void {
   const hosts = Array.from(document.querySelectorAll<HTMLElement>('[data-case-media]'));
   if (hosts.length === 0) return;
 
-  const hold = 8_000;
+  // Keep the old eight-second average, but give every host its own hold on
+  // every cycle so cards that enter together do not rotate in lockstep.
+  const minHold = 6_500;
+  const maxHold = 9_500;
+  const fadeDuration = 1_400;
   const timers = new Map<HTMLElement, number>();
   const visible = new Set<HTMLElement>();
+  const revisions = new Map<HTMLElement, number>();
+  const prepared = new WeakMap<HTMLImageElement, Promise<boolean>>();
+  const fades = new Map<
+    HTMLElement,
+    {
+      animation: Animation;
+      current: HTMLElement;
+      next: HTMLElement;
+    }
+  >();
 
   const framesOf = (host: HTMLElement) =>
     Array.from(host.querySelectorAll<HTMLElement>('[data-media-slide]'));
+
+  const prepareFrame = (frame: HTMLElement): Promise<boolean> => {
+    const image = frame.querySelector<HTMLImageElement>('img');
+    if (!image) return Promise.resolve(false);
+
+    const pending = prepared.get(image);
+    if (pending) return pending;
+
+    // A lazy image can be inside a visible absolutely-positioned frame without
+    // being decoded yet. Promote the next frame early, then wait for a decoded
+    // bitmap before any opacity changes begin.
+    image.loading = 'eager';
+    const preparation = image
+      .decode()
+      .then(() => image.naturalWidth > 0)
+      .catch(() => image.complete && image.naturalWidth > 0);
+    prepared.set(image, preparation);
+    return preparation;
+  };
+
+  const settleFade = (host: HTMLElement) => {
+    const fade = fades.get(host);
+    if (!fade) return;
+
+    fade.current.dataset.active = 'false';
+    fade.next.dataset.active = 'true';
+    delete fade.next.dataset.entering;
+    fade.animation.cancel();
+    fades.delete(host);
+  };
 
   const stopRotation = (host: HTMLElement) => {
     const timer = timers.get(host);
     if (timer !== undefined) window.clearTimeout(timer);
     timers.delete(host);
+    settleFade(host);
+    revisions.set(host, (revisions.get(host) ?? 0) + 1);
     delete host.dataset.mediaRunning;
+  };
+
+  const advance = async (host: HTMLElement, revision: number) => {
+    const frames = framesOf(host);
+    const currentIndex = Math.max(
+      0,
+      frames.findIndex((frame) => frame.dataset.active === 'true'),
+    );
+    const current = frames[currentIndex];
+    const next = frames[(currentIndex + 1) % frames.length];
+
+    const ready = await prepareFrame(next);
+    if (
+      !ready ||
+      revisions.get(host) !== revision ||
+      reducedMotion.matches ||
+      document.hidden ||
+      !visible.has(host)
+    ) {
+      return;
+    }
+
+    // Keep the outgoing frame fully painted underneath. The incoming frame is
+    // promoted above it and explicitly faded, which guarantees a dissolve even
+    // when CSS and image decoding land in the same rendering frame.
+    next.dataset.active = 'true';
+    next.dataset.entering = 'true';
+    const animation = next.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: fadeDuration,
+      easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+      fill: 'both',
+    });
+    const fade = { animation, current, next };
+    fades.set(host, fade);
+
+    await animation.finished.catch(() => {});
+    if (fades.get(host) !== fade) return;
+
+    settleFade(host);
+    if (revisions.get(host) === revision) schedule(host);
   };
 
   const schedule = (host: HTMLElement) => {
@@ -242,17 +342,22 @@ function initCaseMedia(): void {
     const frames = framesOf(host);
     if (frames.length < 2) return;
 
+    const current = Math.max(
+      0,
+      frames.findIndex((frame) => frame.dataset.active === 'true'),
+    );
+    const next = frames[(current + 1) % frames.length];
+    const revision = revisions.get(host) ?? 0;
+
+    // Start fetching/decoding during the hold, not when it expires.
+    void prepareFrame(next);
+
     timers.set(
       host,
-      window.setTimeout(() => {
-        const current = Math.max(
-          0,
-          frames.findIndex((frame) => frame.dataset.active === 'true'),
-        );
-        frames[current].dataset.active = 'false';
-        frames[(current + 1) % frames.length].dataset.active = 'true';
-        schedule(host);
-      }, hold),
+      window.setTimeout(
+        () => void advance(host, revision),
+        minHold + Math.random() * (maxHold - minHold),
+      ),
     );
   };
 
@@ -441,8 +546,14 @@ function initAxes(applyFilter: ((key: string) => void) | null): void {
     // changed, in either direction.
     button.addEventListener('click', () => {
       show(key);
-      applyFilter?.(active() === key ? 'all' : key);
+      const next = active() === key ? 'all' : key;
+      applyFilter?.(next);
       show(key);
+      if (applyFilter) {
+        playUISFXFromGesture(
+          next === 'all' ? UI_SOUND_CUES.filterOff : UI_SOUND_CUES.filterOn,
+        );
+      }
     });
   }
 
@@ -467,19 +578,76 @@ function initAxes(applyFilter: ((key: string) => void) | null): void {
 /* -- 6. Bio glosses -------------------------------------------------------- */
 
 function initGlosses(): void {
-  // Pointer devices already have this: `.gloss:hover` and `:focus-visible` do
-  // the whole job in CSS. Only touch needs a handler.
-  if (canHover.matches) return;
-
   const glosses = Array.from(document.querySelectorAll<HTMLElement>('[data-gloss]'));
   if (glosses.length === 0) return;
 
+  const dialog = document.querySelector<HTMLDialogElement>('[data-gloss-dialog]');
+  const dialogCopy = dialog?.querySelector<HTMLElement>('[data-gloss-dialog-copy]');
+  const dialogClose = dialog?.querySelector<HTMLButtonElement>('[data-gloss-dialog-close]');
+
+  const noteFor = (gloss: HTMLElement): HTMLElement | null =>
+    gloss.querySelector<HTMLElement>('.gloss-note') ??
+    (gloss.nextElementSibling?.classList.contains('gloss-note')
+      ? (gloss.nextElementSibling as HTMLElement)
+      : null);
+
+  const closeDialog = () => {
+    if (dialog?.open) dialog.close();
+  };
+
+  dialogClose?.addEventListener('click', () => {
+    closeDialog();
+    playUISFXFromGesture(UI_SOUND_CUES.glossClose, { volume: 0.72 });
+  });
+
+  // Native dialogs normally handle Escape themselves. Keeping the behaviour
+  // explicit makes it reliable in embedded browsers too, while preserving the
+  // same close cue as the visible X.
+  dialog?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    closeDialog();
+    playUISFXFromGesture(UI_SOUND_CUES.glossClose, { volume: 0.72 });
+  });
+
+  // A tap on the dimmed top-layer backdrop is another natural way out. The
+  // dialog's own rectangle must not count, hence the bounds check.
+  dialog?.addEventListener('click', (event) => {
+    const bounds = dialog.getBoundingClientRect();
+    const outside =
+      event.clientX < bounds.left ||
+      event.clientX > bounds.right ||
+      event.clientY < bounds.top ||
+      event.clientY > bounds.bottom;
+    if (outside) closeDialog();
+  });
+
+  wideLayout.addEventListener('change', (event) => {
+    if (event.matches) closeDialog();
+  });
+
   for (const gloss of glosses) {
     gloss.addEventListener('click', () => {
+      if (!wideLayout.matches && dialog && dialogCopy) {
+        const note = noteFor(gloss);
+        if (!note) return;
+        for (const other of glosses) other.dataset.open = 'false';
+        dialogCopy.textContent = note.textContent;
+        dialog.showModal();
+        playUISFXFromGesture(UI_SOUND_CUES.glossOpen, { volume: 0.72 });
+        return;
+      }
+
+      // Fine pointers already get the CSS hover/focus popover. A wide touch
+      // device keeps the previous tap-to-toggle fallback.
+      if (canHover.matches) return;
       const open = gloss.dataset.open === 'true';
       // One at a time — two notes overlapping on a phone is unreadable.
       for (const other of glosses) other.dataset.open = 'false';
       gloss.dataset.open = String(!open);
+      playUISFXFromGesture(open ? UI_SOUND_CUES.glossClose : UI_SOUND_CUES.glossOpen, {
+        volume: 0.72,
+      });
     });
   }
 }
@@ -511,13 +679,40 @@ function initLang(): void {
     }
   };
 
+  /**
+   * The "Ahora" box, replayed.
+   *
+   * Every other block on the page restarts its own load-in on a language
+   * switch for free: the two languages are two wrappers and CSS hides one, so
+   * the one coming back has been `display: none` and its animations begin
+   * again. This box is the exception in both directions — the swap happens at
+   * the `[data-i18n]` wrappers *inside* it, so its words restart on their own,
+   * while the frame around them and the sweep across it were never hidden and
+   * their animations finished seconds ago.
+   *
+   * Cancel-then-play is that same reset by hand, and it keeps the delays: the
+   * box waits out the bio's rewrite exactly as it did on load, so the sequence
+   * replays as one rather than the frame snapping in ahead of its copy.
+   */
+  const replayNow = () => {
+    const now = document.querySelector('.now');
+    if (!now) return;
+    // `subtree` is what reaches the sweep: it is a pseudo-element's animation,
+    // and a pseudo-element is not something you can query for and ask.
+    for (const animation of now.getAnimations({ subtree: true })) {
+      animation.cancel();
+      animation.play();
+    }
+  };
+
   // The inline script already picked a language; catch the markup up to it.
+  // No replay here — nothing has run yet at this point.
   apply(root.dataset.lang ?? 'es');
 
   for (const button of buttons) {
     button.addEventListener('click', () => {
       const lang = button.dataset.langSet;
-      if (!lang) return;
+      if (!lang || lang === root.dataset.lang) return;
       try {
         localStorage.setItem('lang', lang);
       } catch {
@@ -525,6 +720,10 @@ function initLang(): void {
         // remembered on the next visit.
       }
       apply(lang);
+      // After `apply`, so the words the swap just revealed are already running
+      // and the whole box restarts on one beat.
+      replayNow();
+      playUISFXFromGesture(UI_SOUND_CUES.language);
     });
   }
 }
@@ -590,7 +789,11 @@ function initFilters(): ((key: string) => void) | null {
     bento.dispatchEvent(new CustomEvent('bentofilter'));
   };
 
-  clear?.addEventListener('click', () => apply('all'));
+  clear?.addEventListener('click', () => {
+    if (bento.dataset.filter === 'all') return;
+    apply('all');
+    playUISFXFromGesture(UI_SOUND_CUES.filterOff);
+  });
 
   return apply;
 }
@@ -610,6 +813,7 @@ function initCases(): void {
   const bento = document.querySelector<HTMLElement>('[data-bento]');
   if (!work || !bento) return;
 
+  const shell = work.closest<HTMLElement>('.shell');
   const cases = Array.from(work.querySelectorAll<HTMLElement>('[data-case]'));
   if (cases.length === 0) return;
 
@@ -668,6 +872,7 @@ function initCases(): void {
       }
     }
     work.dataset.view = 'case';
+    shell?.setAttribute('data-case-open', '');
     openSlug = slug;
 
     // Only chase the header when it is actually off the top — a reader already
@@ -697,6 +902,7 @@ function initCases(): void {
 
     for (const other of cases) other.hidden = true;
     work.dataset.view = 'index';
+    shell?.removeAttribute('data-case-open');
     openSlug = null;
 
     // A tile that has spent its whole life inside a `display: none` grid — the
@@ -708,7 +914,13 @@ function initCases(): void {
       pending.classList.add('is-visible');
     }
 
-    const delta = jump(indexScroll);
+    // On the stacked layout the profile comes back above the grid. Land at the
+    // beginning of the work list instead of restoring the old tile position;
+    // on the two-column layout, preserve the reader's previous page position.
+    const destination = wideLayout.matches
+      ? indexScroll
+      : work.getBoundingClientRect().top + window.scrollY;
+    const delta = jump(destination);
 
     const target = tileFor(slug);
     if (target) {
@@ -728,7 +940,10 @@ function initCases(): void {
   // hash on its own, which is what keeps ctrl-click and middle-click working.
   bento.addEventListener('click', (event) => {
     const link = (event.target as Element | null)?.closest<HTMLElement>('.tile-link');
-    if (link) origin = link;
+    if (link) {
+      origin = link;
+      playUISFXFromGesture(UI_SOUND_CUES.caseOpen);
+    }
   });
 
   // Push rather than `history.back()`: guessing whether the entry behind us is
@@ -736,7 +951,16 @@ function initCases(): void {
   // means leaving the site. Pushing always lands on the index, and the
   // browser's own back button still returns to the case.
   document.addEventListener('click', (event) => {
-    if (!(event.target as Element | null)?.closest('[data-case-back]')) return;
+    const target = event.target as Element | null;
+    const step = target?.closest<HTMLAnchorElement>('.case-step');
+    if (step) {
+      playUISFXFromGesture(
+        step.rel === 'prev' ? UI_SOUND_CUES.caseBack : UI_SOUND_CUES.caseNext,
+      );
+      return;
+    }
+    if (!target?.closest('[data-case-back]')) return;
+    playUISFXFromGesture(UI_SOUND_CUES.caseBack);
     history.pushState(null, '', window.location.pathname + window.location.search);
     route();
   });
@@ -800,7 +1024,9 @@ function initTrack(): void {
       return;
     }
 
-    jump(bioScroll);
+    // On phones, returning home means returning to the top of the profile.
+    // The pinned two-column layout keeps its existing position instead.
+    jump(wideLayout.matches ? bioScroll : 0);
     opener?.focus({ preventScroll: true });
   };
 
@@ -847,7 +1073,12 @@ function initTrack(): void {
   // Push rather than `history.back()`, for the same reason "Volver" on a case
   // does: guessing what is behind us stops being reliable the moment anything
   // else has touched the hash, and guessing wrong means leaving the site.
+  opener?.addEventListener('click', () => {
+    playUISFXFromGesture(UI_SOUND_CUES.trackOpen);
+  });
+
   back?.addEventListener('click', () => {
+    playUISFXFromGesture(UI_SOUND_CUES.trackBack);
     history.pushState(null, '', window.location.pathname + window.location.search);
     route();
   });
@@ -862,8 +1093,196 @@ function initTrack(): void {
   route(true);
 }
 
+/* -- 11. Counting figures -------------------------------------------------- */
+
+/**
+ * The two figure strips on the page — a case's `.case-metrics` and the record's
+ * `.track-stats` — count up from zero when their block arrives.
+ *
+ * The number ships written into the HTML and is read back from the DOM, never
+ * passed in as a second copy: with JS off, or before this runs, the figure is
+ * already correct and the only thing missing is the count. Whatever sits around
+ * it in the same string ("+", "%", "x", a unit) is left alone — only the numeric
+ * run is animated, and it is re-rendered in the *same* shape it was authored in,
+ * so `11.432` counts in Spanish grouping rather than reverting to `11432`.
+ *
+ * Both strips carry `font-variant-numeric: tabular-nums`, which is what keeps a
+ * running figure from resizing its own line on every frame.
+ */
+function initCounters(): void {
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-counter]'));
+  if (nodes.length === 0) return;
+
+  /** A parsed figure: everything around the number, and how to write it back. */
+  interface Figure {
+    prefix: string;
+    suffix: string;
+    value: number;
+    format: (n: number) => string;
+  }
+
+  const group = (digits: string, separator: string) =>
+    digits.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+
+  const parse = (raw: string): Figure | null => {
+    const text = raw.trim();
+    const match = /\d[\d.,]*\d|\d/.exec(text);
+    if (!match) return null;
+
+    const token = match[0];
+    const prefix = text.slice(0, match.index);
+    const suffix = text.slice(match.index + token.length);
+
+    // Grouped integer — `11.432`, `1,250`. The separator is whatever the author
+    // used; the count keeps it.
+    const grouped = /^\d{1,3}(([.,])\d{3})+$/.exec(token);
+    if (grouped) {
+      const separator = grouped[2];
+      const value = Number(token.split(separator).join(''));
+      return { prefix, suffix, value, format: (n) => group(String(Math.round(n)), separator) };
+    }
+
+    // Decimal — `2.5`, `1,5`. Held at the authored precision so the figure does
+    // not gain or lose a digit halfway through.
+    const decimal = /^(\d+)([.,])(\d+)$/.exec(token);
+    if (decimal) {
+      const separator = decimal[2];
+      const places = decimal[3].length;
+      const value = Number(`${decimal[1]}.${decimal[3]}`);
+      return {
+        prefix,
+        suffix,
+        value,
+        format: (n) => n.toFixed(places).replace('.', separator),
+      };
+    }
+
+    const value = Number(token.replace(/[.,]/g, ''));
+    if (!Number.isFinite(value)) return null;
+    return { prefix, suffix, value, format: (n) => String(Math.round(n)) };
+  };
+
+  // The same curve every other entrance on the page uses, by hand: this is a
+  // text swap per frame, not a compositor property, so there is no animation to
+  // hand the easing to.
+  const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+
+  const write = (node: HTMLElement, figure: Figure, n: number) => {
+    node.textContent = `${figure.prefix}${figure.format(n)}${figure.suffix}`;
+  };
+
+  const run = (node: HTMLElement, figure: Figure) => {
+    // Long enough to read as a count rather than a flicker, and longer for a
+    // figure with more digits to get through. The curve decelerates hard, so a
+    // single-digit figure lands early no matter what the clock says — shortening
+    // its run is what keeps it from sitting on its final value for half a
+    // second while the eye waits for something else to happen.
+    const duration = figure.value >= 1000 ? 1400 : figure.value >= 100 ? 1100 : 800;
+    const start = performance.now();
+    let done = false;
+
+    const settle = () => {
+      if (done) return;
+      done = true;
+      write(node, figure, figure.value);
+    };
+
+    const frame = (now: number) => {
+      if (done) return;
+      const t = Math.min(1, (now - start) / duration);
+      if (t >= 1) return settle();
+      write(node, figure, figure.value * ease(t));
+      requestAnimationFrame(frame);
+    };
+
+    requestAnimationFrame(frame);
+    // The count is the only thing on the page that replaces its own content, so
+    // it is the only one that can strand something readable. A tab that is
+    // hidden when the run starts gets no frames at all — `setTimeout` still
+    // fires, `requestAnimationFrame` does not — and the figure would sit at zero
+    // until someone looked at it. This lands the real number regardless.
+    window.setTimeout(settle, duration + 400);
+  };
+
+  const figures = new Map<HTMLElement, Figure>();
+  const armed = new Set<HTMLElement>();
+
+  for (const node of nodes) {
+    const figure = parse(node.textContent ?? '');
+    if (figure) {
+      figures.set(node, figure);
+      armed.add(node);
+    }
+  }
+  if (figures.size === 0) return;
+
+  if (reducedMotion.matches || !('IntersectionObserver' in window)) return;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const node = entry.target as HTMLElement;
+        const figure = figures.get(node);
+        if (!figure) continue;
+
+        if (entry.isIntersecting) {
+          if (!armed.has(node)) continue;
+          armed.delete(node);
+          // Zero it now rather than when the count starts: the block is still
+          // fading in behind its own `--i` delay, so the reset is never seen,
+          // whereas swapping the final figure for a zero mid-fade would be.
+          write(node, figure, 0);
+          window.setTimeout(() => run(node, figure), delayOf(node));
+          continue;
+        }
+
+        // A figure inside a view that has been switched off has no box at all.
+        // That is the one case worth re-arming for — reopening the record or a
+        // case replays its whole load-in, and the count is part of it. Scrolling
+        // a figure off screen leaves it counted, like every other reveal.
+        const rect = entry.boundingClientRect;
+        if (!rect.width && !rect.height) armed.add(node);
+      }
+    },
+    { threshold: 0.6 },
+  );
+
+  figures.forEach((_figure, node) => observer.observe(node));
+}
+
+/**
+ * How long the block holding this figure waits before it arrives. Read off the
+ * `.case-enter` / `.track-enter` ancestor's own `animation-delay` rather than
+ * restated here, so the stagger stays a stylesheet decision — the count starts
+ * as its strip lands, not against it.
+ */
+function delayOf(node: HTMLElement): number {
+  const host = node.closest<HTMLElement>('.case-enter, .track-enter, .enter');
+  if (!host) return 120;
+  const declared = Number.parseFloat(getComputedStyle(host).animationDelay);
+  return Number.isFinite(declared) ? declared * 1000 + 220 : 120;
+}
+
+/* -- 12. Console easter egg ----------------------------------------------- */
+
+/** A quiet reward for opening DevTools, styled with the console's native `%c`. */
+function initConsoleEasterEgg(): void {
+  const style = [
+    'background:#7651b5',
+    'color:#d9ff43',
+    'font:700 14px/1.6 monospace',
+    'padding:5px 9px',
+    'border-radius:4px',
+  ].join(';');
+
+  console.log("%c God's in His heaven. All's right with the world. ", style);
+}
+
 /* -- boot ----------------------------------------------------------------- */
 
+initConsoleEasterEgg();
+initUISFX();
+initSoundControls();
 initReveals();
 initVideos();
 initCaseMedia();
@@ -879,3 +1298,6 @@ initCases();
 // record the case router runs first to close whatever case was open and restore
 // its scroll position, so the track's own positioning gets the last word.
 initTrack();
+// Last: both routers above can put a figure on screen, and this one only has to
+// be listening by the time one of them does.
+initCounters();

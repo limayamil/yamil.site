@@ -1,6 +1,7 @@
 ---
 import { profile } from '../data/profile';
 import { parseGloss } from '../lib/gloss';
+import { isWord, streamChunks } from '../lib/stream';
 import Axes from './Axes.astro';
 import Bilingual from './Bilingual.astro';
 import Doodle from './Doodle.astro';
@@ -8,6 +9,7 @@ import ExternalArrow from './ExternalArrow.astro';
 import Icon from './Icon.astro';
 import LangToggle from './LangToggle.astro';
 import Links from './Links.astro';
+import SoundControl from './SoundControl.astro';
 import Track from './Track.astro';
 
 const languages = ['es', 'en'] as const;
@@ -83,71 +85,100 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
   <div class="intro-views">
     <div class="intro-bio" data-intro-bio>
       <div class="flex flex-col gap-7">
-      <div class="enter flex items-start justify-between gap-4" style="--i:0">
-        {/* Decorative: the name it sits above already announces who this is. */}
-        <img
-          class="size-12 lg:size-14"
-          src="/logo.png"
-          alt=""
-          width="384"
-          height="384"
-          loading="eager"
-          decoding="sync"
-          fetchpriority="high"
-        />
-        <LangToggle />
-      </div>
-
       <div class="flex flex-col gap-3">
-        {
-          languages.map((lang) => (
-            <h1
-              lang={lang}
-              data-i18n={lang}
-              class="display enter text-[clamp(2.6rem,4.4vw,3.9rem)]"
-              style="--i:1"
-            >
-              {nameByLang[lang].lead}
-              {nameByLang[lang].last && ' '}
-              {nameByLang[lang].last && (
-                <span class="mark">
-                  {nameByLang[lang].last}
-                  <Doodle name="oval" class="doodle-enter" />
-                </span>
-              )}
-            </h1>
-          ))
-        }
+        <div class="site-heading-row">
+          <div class="site-brand">
+            {/* Decorative: the name beside it already announces who this is. */}
+            <span class="site-logo-slot enter" style="--i:0" aria-hidden="true">
+              <img
+                class="site-logo"
+                src="/logo.png"
+                alt=""
+                width="384"
+                height="384"
+                loading="eager"
+                decoding="sync"
+                fetchpriority="high"
+              />
+            </span>
+            {
+              languages.map((lang) => (
+                <h1
+                  lang={lang}
+                  data-i18n={lang}
+                  class="site-title display enter text-[clamp(2.6rem,4.4vw,3.9rem)]"
+                  style="--i:1"
+                >
+                  {nameByLang[lang].lead}
+                  {nameByLang[lang].last && ' '}
+                  {nameByLang[lang].last && (
+                    <span class="mark">
+                      {nameByLang[lang].last}
+                      <Doodle name="oval" class="doodle-enter" />
+                    </span>
+                  )}
+                </h1>
+              ))
+            }
+          </div>
+          <div class="site-language enter" style="--i:0">
+            <LangToggle />
+          </div>
+        </div>
         <p class="enter text-[0.9375rem] text-muted" style="--i:2">
           <Bilingual es={profile.role.es} en={profile.role.en} />
         </p>
       </div>
 
       {/* Each language gets its own copy of the bio: the marked-up terms differ
-          per language, so `Bilingual` (which takes plain strings) can't do it. */}
-      <div class="bio col-prose enter text-muted" style="--i:3">
+          per language, so `Bilingual` (which takes plain strings) can't do it.
+
+          The bio streams: every word is numbered and resolves out of blur on
+          its own beat (see the "Streaming copy" block in `global.css`). The
+          counter runs across both paragraphs rather than restarting at each
+          one — two paragraphs counting from zero would write themselves at the
+          same time, which is two streams, not one. A glossed term counts as a
+          single word, which it is: `.gloss` is an inline-block button and
+          already cannot break. */}
+      <div class="bio col-prose enter stream text-muted" style="--i:3">
         {
-          languages.map((lang) => (
-            <div lang={lang} data-i18n={lang} class="flex flex-col gap-3.5">
-              {profile.bio.map((paragraph, p) => (
-                <p class="prose-tight">
-                  {parseGloss(paragraph[lang]).map((token, t) =>
-                    token.note ? (
-                      <button type="button" class="gloss" data-gloss>
-                        {token.text}
-                        <span class="gloss-note">{token.note}</span>
-                        {highlighted[lang] === `${p}:${t}` && (
-                          <Doodle name="highlight" class="doodle-enter doodle-wipe" />
-                        )}
-                      </button>
-                    ) : (
-                      token.text
-                    ),
-                  )}
-                </p>
-              ))}
-            </div>
-          ))
+          languages.map((lang) => {
+            let word = 0;
+            return (
+              <div lang={lang} data-i18n={lang} class="flex flex-col gap-3.5">
+                {profile.bio.map((paragraph, p) => (
+                  <p class="prose-tight">
+                    {parseGloss(paragraph[lang]).map((token, t) =>
+                      token.note ? (
+                        <button
+                          type="button"
+                          class="gloss word"
+                          style={`--w:${word++}`}
+                          data-gloss
+                        >
+                          {token.text}
+                          <span class="gloss-note">{token.note}</span>
+                          {highlighted[lang] === `${p}:${t}` && (
+                            <Doodle name="highlight" class="doodle-enter doodle-wipe" />
+                          )}
+                        </button>
+                      ) : (
+                        streamChunks(token.text).map((chunk) =>
+                          isWord(chunk) ? (
+                            <span class="word" style={`--w:${word++}`}>
+                              {chunk}
+                            </span>
+                          ) : (
+                            chunk
+                          ),
+                        )
+                      ),
+                    )}
+                  </p>
+                ))}
+              </div>
+            );
+          })
         }
       </div>
 
@@ -158,15 +189,36 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
           work is now, the link opens where it has been. Two rows and no
           caption — the copy names its own subject ("Ahora en…"), so a label
           over it would say the word twice and cost the pinned column a row. */}
-      <section class="now enter flex flex-col gap-2 text-muted" style="--i:4">
+      {/* `stream` on the section rather than on the line: the line is what
+          carries the words, but the timing is a custom property and belongs
+          where the rest of the block's timing is declared. The chevron row
+          below is not prose and takes none of it.
+
+          And no `--i`, alone on the page: this box does not take a turn in the
+          column's sequence, it waits for the bio to finish writing itself and
+          then arrives. Its entrance, its stream and its sweep all read
+          `--now-start` instead — see `.now` in `global.css`. */}
+      <section class="now enter stream flex flex-col gap-4 text-muted">
+        {/* The band of colour that crosses the box as it arrives — see the
+            "sweep" block in `global.css`. An element rather than a pseudo
+            because it has to clip the band to the rounded frame, and out of
+            the flow, so the section's `gap` never counts it as a row. First in
+            the DOM so the two rows below paint over it. */}
+        <span class="now-sweep" aria-hidden="true"></span>
         {
-          languages.map((lang) => (
+          languages.map((lang) => {
+            let word = 0;
+            return (
             <p lang={lang} data-i18n={lang} class="now-line prose-tight">
-              {/* Decorative, and unlabelled on purpose: the sentence it heads
-                  already opens with "Ahora", so a screen reader announcing the
-                  dot would say it twice. */}
-              <span class="dot" aria-hidden="true" />
-              {experienceParts[lang][0]}
+              {streamChunks(experienceParts[lang][0]).map((chunk) =>
+                isWord(chunk) ? (
+                  <span class="word" style={`--w:${word++}`}>
+                    {chunk}
+                  </span>
+                ) : (
+                  chunk
+                ),
+              )}
               {/* No marker swipe on this one, unlike the same link used to
                   carry. The swipe bleeds 0.26em past the word on each side —
                   that is what makes it read as drawn by hand rather than as a
@@ -174,7 +226,13 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
                   away, so the left bleed lands on it and the two collide.
                   The rule the bio already follows says the same thing from the
                   other end: one swipe per column, and the bio has it. */}
-              <a class="link-em" href={company.href} target="_blank" rel="noreferrer noopener">
+              <a
+                class="link-em word"
+                style={`--w:${word++}`}
+                href={company.href}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
                 {company.name}
                 <ExternalArrow />
               </a>
@@ -193,17 +251,40 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
               {parseGloss(experienceParts[lang][1]).map((token) =>
                 token.note ? (
                   <>
+                    {/* The words go *inside* the button, not around it: the
+                        title is four of them, and one span over the lot would
+                        resolve them in a block while the rest of the sentence
+                        streams. Safe to blur here, unlike a bio gloss — this
+                        note is a sibling of the button, so no filter of the
+                        button's can re-anchor it. */}
                     <button type="button" class="gloss gloss-role" data-gloss>
-                      {token.text}
+                      {streamChunks(token.text).map((chunk) =>
+                        isWord(chunk) ? (
+                          <span class="word" style={`--w:${word++}`}>
+                            {chunk}
+                          </span>
+                        ) : (
+                          chunk
+                        ),
+                      )}
                     </button>
                     <span class="gloss-note">{token.note}</span>
                   </>
                 ) : (
-                  token.text
+                  streamChunks(token.text).map((chunk) =>
+                    isWord(chunk) ? (
+                      <span class="word" style={`--w:${word++}`}>
+                        {chunk}
+                      </span>
+                    ) : (
+                      chunk
+                    ),
+                  )
                 ),
               )}
             </p>
-          ))
+            );
+          })
         }
 
         {/* Shaped like an axis row, and deliberately not one: it carries no
@@ -260,23 +341,44 @@ const initialTime = new Intl.DateTimeFormat('en-US', {
       </div>
     </div>
 
-    <p class="flex items-center gap-2 text-[0.8125rem] text-faint">
-      <span>{profile.location}</span>
-      <span aria-hidden="true">—</span>
-      <time data-clock data-timezone={profile.timezone} class="tabular-nums">
-        {initialTime}
-      </time>
-      <span
-        data-weather
-        data-weather-lat={profile.weather.lat}
-        data-weather-lon={profile.weather.lon}
-        class="items-center gap-1 tabular-nums"
-        style="display: none"
-      >
+    <div class="intro-meta">
+      <p class="flex items-center gap-2 text-[0.8125rem] text-faint">
+        <span>{profile.location}</span>
         <span aria-hidden="true">—</span>
-        <span data-weather-icon aria-hidden="true"></span>
-        <span data-weather-temp></span>
-      </span>
-    </p>
+        <time data-clock data-timezone={profile.timezone} class="tabular-nums">
+          {initialTime}
+        </time>
+        <span
+          data-weather
+          data-weather-lat={profile.weather.lat}
+          data-weather-lon={profile.weather.lon}
+          class="items-center gap-1 tabular-nums"
+          style="display: none"
+        >
+          <span aria-hidden="true">—</span>
+          <span data-weather-icon aria-hidden="true"></span>
+          <span data-weather-temp></span>
+        </span>
+      </p>
+      <SoundControl />
+    </div>
   </div>
 </header>
+
+{/* On narrow screens a gloss opens in the top layer instead of trying to
+    escape the paragraph as an anchored popover. One shared dialog is enough:
+    motion.ts copies the active note into it, so the source copy remains the
+    single source of truth for both languages. */}
+<dialog class="gloss-dialog" data-gloss-dialog aria-labelledby="gloss-dialog-title">
+  <div class="gloss-dialog-head">
+    <h2 id="gloss-dialog-title" class="label">
+      <Bilingual es="Nota" en="Note" />
+    </h2>
+    <button type="button" class="gloss-dialog-close" data-gloss-dialog-close>
+      <span aria-hidden="true">×</span>
+      <span class="sr-only" lang="es" data-i18n="es">Cerrar nota</span>
+      <span class="sr-only" lang="en" data-i18n="en">Close note</span>
+    </button>
+  </div>
+  <p class="gloss-dialog-copy" data-gloss-dialog-copy></p>
+</dialog>

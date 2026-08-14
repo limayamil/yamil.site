@@ -79,6 +79,18 @@
   --color-primary: #e35342;
   --color-primary-ink: #f2836f;
   --color-primary-wash: rgb(227 83 66 / 0.28);
+  --sweep-spectrum: linear-gradient(
+    90deg,
+    transparent 0%,
+    #e35342 14%,
+    #f08a3c 28%,
+    #f5c451 42%,
+    #4fbf7d 56%,
+    #46b6d9 70%,
+    #5a7bd8 82%,
+    #9a6bd4 92%,
+    transparent 100%
+  );
 
   --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
@@ -353,16 +365,67 @@ html[data-lang='es'] [data-i18n='en'] {
   }
 }
 
-@keyframes breathe {
+@keyframes logo-sway {
   0%,
   100% {
-    opacity: 1;
-    transform: scale(1);
+    transform: rotate(-4deg);
   }
   50% {
-    opacity: 0.45;
-    transform: scale(0.82);
+    transform: rotate(4deg);
   }
+}
+
+/* Name and face share one line. The title sits above the face and pulls back
+   into it slightly, so "Yami" is what creates the overlap instead of moving
+   the image with a transform that would fight its idle animation. */
+.site-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.site-logo-slot {
+  position: relative;
+  z-index: 0;
+  flex: none;
+  width: clamp(3.5rem, 5vw, 4rem);
+  height: clamp(3.5rem, 5vw, 4rem);
+}
+
+.site-title {
+  position: relative;
+  z-index: 1;
+  margin-left: -0.45rem;
+}
+
+.site-language {
+  flex: none;
+}
+
+/* The face mark: a slow idle sway, transform-only so it never disturbs
+   layout, plus a hover/focus grow. The sway and the hover scale animate on
+   separate properties (rotate vs scale) so they can run at once without one
+   clobbering the other's transform. */
+.site-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 65%;
+  animation: logo-sway 5s ease-in-out infinite;
+  transition: scale 0.25s ease;
+  will-change: transform;
+}
+
+.site-logo:hover,
+.site-logo:focus-visible {
+  scale: 1.12;
 }
 
 /* Staggered load-in. Each element sets --i for its position in the sequence. */
@@ -384,6 +447,131 @@ html[data-lang='es'] [data-i18n='en'] {
 [data-reveal].is-visible {
   opacity: 1;
   transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Streaming copy — prose that resolves word by word, out of blur.
+
+   The two blocks of prose on the page (the bio and the track record) write
+   themselves in rather than fading in as a slab. Every word is a span numbered
+   `--w` at build time (see `src/lib/stream.ts`); everything else is here.
+
+   Three things make it worth the spans:
+
+   - **It is pure CSS**, so it runs in the two places a script cannot reach: a
+     view that has been `display: none` since load restarts it on the way in,
+     which is how the track record gets an entrance at all (the same reason
+     `.track-enter` is an animation and not `[data-reveal]`), and how switching
+     language re-streams the copy that was just revealed instead of swapping in
+     a block that was animated while nobody could see it.
+   - **`opacity` and `filter`, never `transform`.** A `transform` is ignored on
+     a non-replaced inline box, so animating one would mean `inline-block`
+     words — and inline-block words break `text-wrap: pretty` and the line
+     breaking around them. Blur is the travel here.
+   - **The delay composes with the block's own.** `--i` inherits from the
+     `.enter` / `.track-enter` ancestor, so a streamed paragraph starts when its
+     block does and no timing is written twice.
+
+   Budget: `--stream-step` × the longest streamed sequence is how long the copy
+   takes to finish. The bio runs one counter across both paragraphs (~55 words,
+   so ~2.1s), which is the longest one on the page — raising the step means
+   re-checking that it still lands inside a glance.
+--------------------------------------------------------------------------- */
+
+@keyframes stream-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/* A glossed term resolves by opacity alone. It is the one word that carries
+   things of its own — an absolutely positioned note, and the marker swipe on
+   the first one — and a filter is a containing block and a stacking context
+   for both. Nothing visibly breaks today, but the word is already an exception
+   in the markup (`.gloss` is the whole token, not one span inside it), so it
+   is cheaper to keep it out of the blur than to keep checking. */
+@keyframes stream-in-plain {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The caret is held, not blinked: it is only on screen for one step, and a
+   blink inside 38ms would just read as a flicker. */
+@keyframes stream-caret {
+  from,
+  to {
+    opacity: 1;
+  }
+}
+
+.stream {
+  --stream-step: 38ms;
+  /* Matches `.enter`'s own delay, so the words begin as their block does. */
+  --stream-base: calc(var(--i, 0) * 65ms + 60ms);
+}
+
+/* The record's blocks arrive on a different beat — see `.track-enter`. */
+.track .stream {
+  --stream-base: calc(var(--i, 0) * 45ms + 120ms);
+}
+
+/* `backwards`, not `forwards`, and the resting state is the *resolved* word.
+   Read the two the other way round and they look equivalent; they are not.
+
+   `forwards` locks the last keyframe in, and interpolating `blur(5px)` toward
+   `filter: none` computes as `blur(0px)` — so every word on the page would end
+   up holding a filter, which is a containing block and a stacking context, for
+   good. `backwards` applies the *first* keyframe during the delay instead and
+   then lets the element fall back to its own style, which is plain resolved
+   text: no filter, nothing left behind, and nothing to clean up.
+
+   It also means the un-animated state is legible rather than invisible —
+   whatever stops the animation (the reduced-motion block below, an old engine)
+   shows the copy instead of a blank column. */
+.stream .word {
+  position: relative;
+  /* Not `--ease-out`. That curve is an expo-out built for a 900ms travel: over
+     420ms it spends the blur in the first ~80 of them and the word lands as a
+     pop with a smudge in front of it. This one holds the blur across most of
+     the step, which is the whole read — the word is resolving, not arriving. */
+  animation: stream-in 420ms cubic-bezier(0.22, 0.61, 0.25, 1) backwards;
+  animation-delay: calc(var(--stream-base) + var(--w, 0) * var(--stream-step));
+}
+
+.stream .gloss.word {
+  animation-name: stream-in-plain;
+}
+
+/* The head of the stream. Not one caret that travels — one per word, each on
+   screen for exactly its own step, which reads as a single caret hopping
+   forward and costs no JS to position. `fill: none` is doing the work: during
+   the delay the base `opacity: 0` applies, during the step the keyframes do,
+   and afterwards it falls back to the base again.
+
+   Absolutely positioned, so a word never changes width for it. Excluded on
+   `.link`, whose `::after` is already its underline. */
+.stream .word:not(.link)::after {
+  content: '';
+  position: absolute;
+  top: 0.1em;
+  right: -0.16em;
+  width: 1.5px;
+  height: 0.95em;
+  border-radius: 1px;
+  background: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  animation: stream-caret var(--stream-step) steps(1);
+  animation-delay: calc(var(--stream-base) + var(--w, 0) * var(--stream-step));
 }
 
 /* ---------------------------------------------------------------------------
@@ -509,6 +697,95 @@ html[data-lang='es'] [data-i18n='en'] {
   row-gap: 0.5rem;
 }
 
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.contact-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.375rem;
+  padding: 0.625rem 0.875rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1;
+  box-shadow: inset 0 0 0 1px rgb(18 9 6 / 0.15);
+  isolation: isolate;
+  transition: background-color 0.3s var(--ease-io);
+}
+
+/* The same spectrum as the one-time sweep through `.now`, replayed whenever
+   a contact button is hovered or receives keyboard focus. */
+.contact-link::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: -70% auto;
+  left: 0;
+  width: 55%;
+  background: var(--sweep-spectrum);
+  mix-blend-mode: screen;
+  filter: blur(12px);
+  opacity: 0;
+  transform: translate3d(-100%, 0, 0);
+  pointer-events: none;
+}
+
+.contact-link:hover::before,
+.contact-link:focus-visible::before {
+  animation: contact-sweep 0.9s var(--ease-io);
+}
+
+@keyframes contact-sweep {
+  from {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(190%, 0, 0);
+  }
+}
+
+.contact-link-content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.contact-icon {
+  flex: none;
+}
+
+.contact-link .arrow {
+  position: relative;
+  z-index: 1;
+  width: 0.625rem;
+  height: 0.625rem;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.contact-link:hover .arrow,
+.contact-link:focus-visible .arrow {
+  transform: translate3d(2px, -2px, 0);
+}
+
 .note {
   display: none;
 }
@@ -611,6 +888,14 @@ html[data-lang='es'] [data-i18n='en'] {
   }
 }
 
+/* A case is the whole mobile view. The profile returns when the case closes;
+   `motion.ts` then anchors the viewport at the beginning of the work list. */
+@media (max-width: 61.999rem) {
+  .shell[data-case-open] .intro {
+    display: none;
+  }
+}
+
 .intro {
   padding-block: var(--pad-y);
 }
@@ -622,6 +907,47 @@ html[data-lang='es'] [data-i18n='en'] {
   flex-direction: column;
   gap: 2rem;
   margin-top: 3rem;
+}
+
+.intro-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.sound-controls {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-faint);
+}
+
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.3s var(--ease-io);
+}
+
+.sound-toggle:hover,
+.sound-toggle:focus-visible,
+.sound-toggle[aria-pressed='true'] {
+  color: var(--color-ink);
+}
+
+.sound-icon,
+.sound-wave {
+  transition: opacity 0.3s var(--ease-io);
+}
+
+.sound-controls[data-enabled='false'] .sound-wave {
+  opacity: 0;
 }
 
 @media (min-width: 62rem) {
@@ -809,30 +1135,6 @@ html[data-lang='es'] [data-i18n='en'] {
     position: sticky;
     height: 100svh;
   }
-}
-
-/* ---------------------------------------------------------------------------
-   Availability dot
---------------------------------------------------------------------------- */
-
-.dot {
-  position: relative;
-  display: inline-block;
-  width: 0.4375rem;
-  height: 0.4375rem;
-  border-radius: 50%;
-  background: #2f9e5f;
-  flex: none;
-}
-
-.dot::after {
-  content: '';
-  position: absolute;
-  inset: -0.1875rem;
-  border-radius: 50%;
-  background: #2f9e5f;
-  opacity: 0.3;
-  animation: breathe 2.8s var(--ease-io) infinite;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1080,6 +1382,75 @@ html[data-lang='es'] [data-i18n='en'] {
   transform: none;
 }
 
+/* Narrow screens promote a gloss to the browser's top layer. That removes it
+   from every overflow and stacking context in the pinned intro, while the
+   desktop treatment remains the lighter anchored popover above. */
+.gloss-dialog {
+  width: min(22rem, calc(100% - 2 * var(--pad-x)));
+  max-width: none;
+  margin: auto;
+  padding: 1rem;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--color-line),
+    0 18px 48px rgb(0 0 0 / 0.58);
+  color: var(--color-muted);
+}
+
+.gloss-dialog::backdrop {
+  background: rgb(8 7 12 / 0.68);
+  backdrop-filter: blur(3px);
+}
+
+.gloss-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.gloss-dialog-close {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.06);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.3s var(--ease-io);
+}
+
+.gloss-dialog-close:hover,
+.gloss-dialog-close:focus-visible {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.gloss-dialog-copy {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 61.999rem) {
+  .gloss-note {
+    display: none;
+  }
+}
+
+@media (min-width: 62rem) {
+  .gloss-dialog {
+    display: none;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Capability axes — three chips over one shared, fixed-height panel.
 
@@ -1166,14 +1537,14 @@ html[data-lang='es'] [data-i18n='en'] {
 
 /* Inside a chip the row-shift reads as the label sliding off its own border, so
    the chip stays put and only the cue moves. */
-.chip:hover .axis-icon,
-.chip:focus-visible .axis-icon,
-.chip.is-active .axis-icon,
-.chip[aria-pressed='true'] .axis-icon,
-.chip:hover .axis-title,
-.chip:focus-visible .axis-title,
-.chip.is-active .axis-title,
-.chip[aria-pressed='true'] .axis-title {
+.axis.chip:hover .axis-icon,
+.axis.chip:focus-visible .axis-icon,
+.axis.chip.is-active .axis-icon,
+.axis.chip[aria-pressed='true'] .axis-icon,
+.axis.chip:hover .axis-title,
+.axis.chip:focus-visible .axis-title,
+.axis.chip.is-active .axis-title,
+.axis.chip[aria-pressed='true'] .axis-title {
   transform: none;
 }
 
@@ -1276,53 +1647,177 @@ html[data-lang='es'] [data-i18n='en'] {
    competing with the bento on the right rather than as a bracket around two
    lines of the bio.
 
-   The frame is padded on three sides only — the CTA row's own `padding-block`
-   is the bottom inset — and the axis rule is turned around into the box's
-   divider. A rule under the last row *inside* a border reads as a mistake, and
-   as a `border-top` it buys back its own 1px besides. */
+   The frame carries a little more air on every edge. Its own bottom inset plus
+   the CTA row's `padding-block` visually balances the top; the axis rule is
+   turned around into the box's divider. A rule under the last row *inside* a
+   border reads as a mistake, and as a `border-top` it buys back its own 1px
+   besides. */
 .now {
+  --now-status: rgb(47 158 95 / 0.55);
+  /* The band's own palette, kept as one custom property so recolouring the
+     sweep is a one-line edit and never touches the geometry below. Swap it for
+     a single-hue version to tie the box to the brand, e.g.
+     `linear-gradient(90deg, transparent, var(--color-primary), transparent)`. */
+  --now-sweep: var(--sweep-spectrum);
+  /* The whole box waits out the bio, rather than taking its turn in the
+     column's `--i` sequence: it is the answer to what the bio just said, so it
+     arrives once the bio has finished saying it, and then lights itself.
+
+     This is the only block on the page whose entrance is not its own `--i` —
+     which is why the section carries no `--i` at all, and why three things read
+     from here instead: the box's fade-in, its copy's stream, and the sweep.
+
+     The terms are the ones `.stream .word` already uses, spelled out because
+     the block being waited on is not this one: `.enter`'s delay for the bio's
+     `--i:3`, plus its longest word index, plus one word's resolve, plus a beat
+     to separate the two events. 36 is the Spanish bio — the longer of the two
+     languages (English tops out at 32) and therefore the one that decides.
+     Re-measure it when the bio's copy changes; running early is the failure,
+     and it costs nothing to be a beat late. */
+  --now-start: calc(3 * 65ms + 60ms + 36 * var(--stream-step) + 420ms + 120ms);
+  /* Its own copy is ~760ms of stream behind that (nine words at
+     `--stream-step`, plus the last one's resolve), so the band crosses a box
+     that has finished arriving rather than one still writing itself. */
+  --now-sweep-delay: calc(var(--now-start) + 880ms);
+  /* Anchors the sweep. The two rows inside already carry their own
+     `position: relative` (see `.now p` and `.now .axis-link`) so they paint
+     after it — that is what keeps the band under the copy without a z-index. */
+  position: relative;
   /* `.col-prose` plus the box's own inset, rather than that class itself. A cap
      applied to the frame is a cap on the copy *minus* the padding, which wraps
      the line one further and costs the pinned column ~23px for nothing. Adding
      the inset back keeps the measure identical to the bio above it. */
-  max-width: calc(38ch + 2rem);
-  padding: 0.875rem 1rem 0;
-  border: 1px solid var(--color-line);
+  max-width: calc(38ch + 2.5rem);
+  padding: 1.125rem 1.25rem 0.625rem;
   border-radius: 0.75rem;
-  background: rgb(255 255 255 / 0.035);
+  background:
+    radial-gradient(
+      ellipse 80% 65% at 50% 100%,
+      rgb(47 158 95 / 0.1),
+      transparent 72%
+    ),
+    rgb(255 255 255 / 0.035);
+  box-shadow: 0 0.5rem 0.875rem -0.5rem rgb(47 158 95 / 0.16);
+}
+
+/* The status gradient is the frame only. A masked layer keeps its translucent
+   green out of the panel's equally translucent fill, where two background
+   layers would otherwise blend through each other. */
+.now::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom, var(--color-line) 20%, var(--now-status));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Both of these override a `--i`-derived value with `--now-start`, and both win
+   on source order alone — `.now.enter` outranks `.enter`, but `.now` and
+   `.stream` are the same (0,1,0) and this block is simply further down the
+   sheet than the streaming primitives. Keep it that way. */
+.now.enter {
+  animation-delay: var(--now-start);
+}
+
+.now.stream {
+  --stream-base: var(--now-start);
 }
 
 @media (min-width: 62rem) {
   .now {
-    max-width: calc(62ch + 2rem);
+    max-width: calc(62ch + 2.5rem);
   }
 }
 
-/* The live dot heads the sentence rather than sitting in a row of its own, so
-   the whole statement stays one line of copy.
+/* ---------------------------------------------------------------------------
+   The sweep — a band of colour that crosses the box once, as the box arrives.
 
-   Taken out of the flow rather than left inline with a negative `text-indent`:
-   the sentence carries an `inline-flex` link two words in, and an atomic inline
-   box does not always take the first line's indent with it. Out of the flow the
-   dot cannot push anything, every wrapped line clears it on the paragraph's own
-   padding, and the vertical placement stops depending on the baseline. */
-.now-line {
-  padding-left: 1.0625rem;
+   Pure CSS, for the same reason the stream is: `.now` lives in a view that is
+   `display: none` while the track record is open, so the sweep replays on the
+   way back in — the same beat the words already re-stream on — and nothing has
+   to be re-triggered from a script.
+
+   It needs a real element rather than a second pseudo on `.now`: the band is
+   wider than the box and travels past both edges, so something has to clip it
+   to the rounded frame, and a pseudo-element cannot hold a child. `.now-sweep`
+   is that clip; its own `::before` is the band. Clipping cannot move up to
+   `.now` itself — the box holds a `.gloss-note` that is deliberately allowed to
+   overflow it.
+
+   Timing is the one thing here that does *not* hang off the block's own `--i`:
+   the band waits out the whole column's copy, so it is deliberately coupled to
+   the bio's word count. See `--now-sweep-delay` on `.now`.
+--------------------------------------------------------------------------- */
+
+.now-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
-.now-line .dot {
+.now-sweep::before {
+  content: '';
   position: absolute;
+  /* Taller than the box on both sides, so the blur's own soft edge never
+     shows up as a horizontal seam inside the frame. */
+  inset: -70% auto;
   left: 0;
-  /* Half the line-height of `.prose-tight`, so it centres on the first line
-     whatever the copy does below it. */
-  top: 0.775em;
-  transform: translateY(-50%);
+  width: 45%;
+  background: var(--now-sweep);
+  /* Screen, not plain alpha: over the box's 3.5% wash a flat band greys out,
+     where screen keeps the hues reading as light. */
+  mix-blend-mode: screen;
+  filter: blur(18px);
+  opacity: 0;
+  transform: translate3d(-100%, 0, 0);
+  /* `--ease-io`, not the `--ease-out` the rest of the column arrives on: that
+     curve is near-exponential and spends two thirds of its time parked past
+     the right edge, so the band crossed the copy in a third of its duration
+     and the envelope below lit an empty box. A symmetric curve puts the band
+     over the middle of the box at the middle of the animation. */
+  animation: now-sweep 1.05s var(--ease-io) forwards;
+  animation-delay: var(--now-sweep-delay);
+}
+
+/* Opacity is an envelope rather than a fade at one end: the band should be at
+   full strength while it is over the copy and gone by the time it reaches
+   either edge, where the clip would otherwise cut it off mid-colour. */
+@keyframes now-sweep {
+  from {
+    opacity: 0;
+    /* Percentages of the band, which is 45% of the box: it starts flush
+       against the left edge and ends flush past the right, so nearly the whole
+       duration is spent visibly crossing rather than parked outside the clip. */
+    transform: translate3d(-100%, 0, 0);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(235%, 0, 0);
+  }
 }
 
 /* The section's `gap` spaces the link off the copy; its own top margin would
    only add to it. */
 .now .axis-link {
   margin-top: 0;
+  /* Positioned for paint order, not for placement: it is a later sibling of
+     `.now-sweep`, so being positioned is what puts it above the band. */
+  position: relative;
   border-top: 1px solid var(--color-line);
   border-bottom: 0;
 }
@@ -1507,6 +2002,64 @@ html[data-lang='es'] [data-i18n='en'] {
 
 .track-title {
   font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+}
+
+.github-activity {
+  width: 100%;
+  max-width: 70%;
+  margin: 0;
+}
+
+@media (max-width: 61.999rem) {
+  .github-activity {
+    max-width: 100%;
+  }
+}
+
+.github-activity-panel {
+  display: block;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.035);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.github-activity-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.github-activity-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.github-activity-title svg {
+  flex: none;
+  color: var(--color-primary-ink);
+}
+
+.github-activity-meta {
+  display: block;
+  color: var(--color-faint);
+  text-align: right;
+}
+
+.github-activity-graph {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 687 / 89;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 /* The same three-figure strip a case opens with, on the other side of the page
@@ -1779,8 +2332,9 @@ html[data-lang='es'] [data-i18n='en'] {
 /* ---------------------------------------------------------------------------
    Bento grid
 
-   Three tiers, and the size *is* the claim: a primary spans the full width and
-   two rows, a secondary covers two cells either way up, a tertiary covers one.
+   Three tiers, and the size *is* the claim — pero la altura tiene piso: ningún
+   tile baja de dos filas. En desktop cada caso ocupa una sola de tres columnas,
+   así nunca hay menos de tres por fila; la jerarquía pasa a expresarse por alto.
    `grid-auto-flow: dense` is what keeps it from reading as a staircase — a
    vertical tile dropped after a horizontal one backfills the hole instead of
    leaving it. The trade is that dense decouples visual order from DOM order,
@@ -1818,39 +2372,50 @@ html[data-lang='es'] [data-i18n='en'] {
 @media (min-width: 34rem) {
   .bento {
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: clamp(9rem, 21vw, 13rem);
+    grid-auto-rows: clamp(8rem, 18vw, 10.5rem);
     grid-auto-flow: dense;
   }
 
+  /* Dos filas es el piso, no el tamaño de un tier. Una sola fila deja los ~105px
+     de copia sobre una astilla de arte, y al lado de un vecino de dos filas esa
+     astilla se lee como sobra, no como jerarquía. El piso vive acá para que cada
+     tier declare únicamente lo que agrega por encima. */
   .tile {
     aspect-ratio: auto;
+    grid-row: span 2;
   }
 
+  /* A dos columnas un horizontal ya ocupa el ancho completo, así que el primary
+     necesita la fila extra para seguir siendo el tile dominante. La vuelve a
+     soltar el bloque de 62rem, donde el ancho alcanza para diferenciarlos. */
   .tile[data-tier='primary'] {
     grid-column: span 2;
-    grid-row: span 2;
+    grid-row: span 3;
   }
 
   .tile[data-tier='secondary'][data-shape='horizontal'] {
     grid-column: span 2;
-  }
-
-  .tile[data-tier='secondary'][data-shape='vertical'] {
-    grid-row: span 2;
   }
 }
 
 @media (min-width: 62rem) {
   .bento {
     grid-template-columns: repeat(3, 1fr);
-    /* A tertiary tile is one row tall and carries axis + title + deck, which is
-       ~105px of copy. Below about 10rem the scrim behind that copy swallows the
-       whole cell and the artwork stops reading at all. */
-    grid-auto-rows: clamp(10rem, 14vw, 13.5rem);
+    /* Media celda, no una: el tile común ocupa dos filas y queda entre 14.5rem
+       y 17rem. Sigue alcanzando para eje + título + bajada sin que el scrim se
+       coma la imagen, pero reduce claramente la escala anterior. */
+    grid-auto-rows: clamp(7.25rem, 8.5vw, 8.5rem);
   }
 
+  /* Ningún tier puede ocupar más de un tercio del ancho en desktop. El primary
+     conserva jerarquía con una fila extra; el resto comparte la caja compacta. */
   .tile[data-tier='primary'] {
-    grid-column: span 3;
+    grid-column: span 1;
+    grid-row: span 3;
+  }
+
+  .tile[data-tier='secondary'][data-shape='horizontal'] {
+    grid-column: span 1;
   }
 }
 
@@ -2017,6 +2582,9 @@ html[data-lang='es'] [data-i18n='en'] {
    exactly the 3.5em of bleed above it, so the ramp always starts where the
    text stops. `em`, so it scales with the type rather than with the layout.
 
+   `--tile-tint` lets each case borrow a darkened version of its poster's
+   dominant colour. Only the hue changes; the alpha and geometry stay fixed.
+
    The alpha is measured, not chosen. `--color-primary-ink` binds it: at
    L = 0.362 it needs a backdrop at L ≤ 0.042 to clear 4.5:1, and pushing white
    artwork that far down takes α ≥ 0.82. At 0.93 the worst case lands at
@@ -2029,9 +2597,9 @@ html[data-lang='es'] [data-i18n='en'] {
   inset-inline: calc(-1 * var(--tile-pad));
   background: linear-gradient(
     to top,
-    rgb(18 9 6 / 0.93) 0%,
-    rgb(18 9 6 / 0.93) calc(100% - 3.5em),
-    rgb(18 9 6 / 0) 100%
+    rgb(var(--tile-tint) / 0.93) 0%,
+    rgb(var(--tile-tint) / 0.93) calc(100% - 3.5em),
+    rgb(var(--tile-tint) / 0) 100%
   );
   pointer-events: none;
 }
@@ -2137,6 +2705,42 @@ html[data-lang='es'] [data-i18n='en'] {
   }
 }
 
+/* On phones the index behaves as a list, not as a one-column bento. The image
+   remains the tile's background, while a shared row height and title-only
+   copy make every case scannable without turning the artwork into a thumbnail
+   beside the content. Tier hierarchy returns at the two-column breakpoint. */
+@media (max-width: 33.999rem) {
+  .bento {
+    gap: 0.5rem;
+  }
+
+  .tile,
+  .tile[data-tier='primary'],
+  .tile[data-tier='secondary'][data-shape='vertical'] {
+    aspect-ratio: auto;
+    min-height: 8.75rem;
+  }
+
+  .tile-link {
+    --tile-pad: 0.875rem;
+  }
+
+  .tile-summary {
+    display: none;
+  }
+
+  .tile[data-tier='primary'] .tile-title,
+  .tile[data-tier='secondary'] .tile-title {
+    font-size: 1rem;
+    letter-spacing: -0.018em;
+  }
+
+  .tile-cue {
+    top: 0.875rem;
+    right: 0.875rem;
+  }
+}
+
 /* Hovering a capability on the left dims the work that does not belong to it.
    The two columns share one key (`icon` / `axis`), which is the only reason
    this is four lines instead of a lookup table. */
@@ -2203,11 +2807,67 @@ html[data-lang='es'] [data-i18n='en'] {
   transform: translate3d(-3px, 0, 0);
 }
 
+/* Two-thirds title/lead, one-third client logos — a slot for marks like
+   `.track-company-logo`, not the header content itself, so it collapses
+   cleanly when a case ships none. Stacks below 62rem: the case column is
+   already narrower than the bento there, and a side-by-side split would
+   squeeze `.case-head` under its own line-length budget. */
+.case-head-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 62rem) {
+  .case-head-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+}
+
 .case-head {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   max-width: 46ch;
+  flex: 2 1 0;
+}
+
+/* Decorative — the client's name is already text in `.case-title`, so these
+   are `aria-hidden` rather than carrying `role="img"` the way
+   `CompanyLogo.astro` does for the track record, where the mark replaces the
+   name instead of echoing it. Sized by area, not a shared height, same
+   reasoning as `.track-company-logo`: `width: auto` plus the file's own
+   intrinsic ratio keeps a near-square mark and a wide wordmark in the same
+   row without either one dominating. */
+.case-head-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.25rem 1.5rem;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (min-width: 62rem) {
+  .case-head-logos {
+    justify-content: flex-end;
+  }
+}
+
+.case-head-logo {
+  height: 1.75rem;
+  width: auto;
+  max-width: 100%;
+  /* Forces the mark to flat white regardless of the source file's own fill —
+     a client logo arrives in whatever colour its brand kit ships, and the
+     header sits directly on `--color-bg`, so normalizing here is what keeps
+     a future logo from landing illegible instead of re-exporting its SVG. */
+  filter: brightness(0) invert(1);
+  opacity: 0.82;
 }
 
 .case-kicker {
@@ -2243,14 +2903,23 @@ html[data-lang='es'] [data-i18n='en'] {
 .case-roles {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem 0.5rem;
-  color: var(--color-faint);
+  gap: 0.5rem;
   font-size: 0.8125rem;
 }
 
-.case-roles li + li::before {
-  content: '·';
-  margin-right: 0.5rem;
+.case-roles li {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  color: var(--color-muted);
+}
+
+.case-hero-wrap {
+  position: relative;
+  padding-bottom: 1.125rem;
 }
 
 .case-hero {
@@ -2260,6 +2929,33 @@ html[data-lang='es'] [data-i18n='en'] {
   background: var(--color-surface);
   aspect-ratio: 16 / 9;
   isolation: isolate;
+}
+
+/* The note hangs from the hero rather than sitting inside its crop. That keeps
+   the media unobstructed while still reading as an annotation made directly
+   on the case. Its copy remains real content; only the arrow is decorative. */
+.case-hero-note {
+  position: absolute;
+  right: clamp(0.75rem, 3vw, 2rem);
+  bottom: 0;
+  z-index: 4;
+  max-width: min(16rem, calc(100% - 4rem));
+  margin: 0;
+  padding: 0.25rem 0.75rem 0.3125rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+  color: var(--color-primary-ink);
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.case-hero-note .doodle {
+  top: 50%;
+  left: -2.85rem;
+  width: 3.25rem;
+  height: 1.4rem;
+  transform: translateY(-48%) rotate(-3deg);
 }
 
 .case-hero::after {
@@ -2283,8 +2979,8 @@ html[data-lang='es'] [data-i18n='en'] {
 
 /* Shared tile/hero slideshow. The frame owns the crossfade while its image
    owns the slow Ken Burns movement, so neither transform has to fight the
-   tile's hover scale. Only the active image is animated; changing slides
-   restarts the pan from a composed, fully covered edge. */
+   tile's hover scale. data-entering is held only during the explicit WAAPI
+   fade, keeping the decoded incoming image above the outgoing one. */
 .case-media-frame {
   z-index: 0;
   overflow: hidden;
@@ -2298,6 +2994,10 @@ html[data-lang='es'] [data-i18n='en'] {
 .case-media-frame[data-active='true'] {
   z-index: 1;
   opacity: 1;
+}
+
+.case-media-frame[data-entering='true'] {
+  z-index: 2;
 }
 
 .case-media-frame img {
@@ -2353,12 +3053,21 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 .case-metric-value {
-  display: block;
+  position: relative;
+  display: inline-block;
   font-size: clamp(1.375rem, 2.6vw, 1.75rem);
   font-weight: 500;
   letter-spacing: -0.024em;
   font-variant-numeric: tabular-nums;
   color: var(--color-primary-ink);
+}
+
+.case-metric-mark .doodle {
+  top: -0.32em;
+  left: -0.42em;
+  width: calc(100% + 0.84em);
+  height: calc(100% + 0.56em);
+  transform: rotate(-1.5deg);
 }
 
 .case-metric-label {
@@ -2379,6 +3088,7 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 .case-sections {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
@@ -2391,7 +3101,21 @@ html[data-lang='es'] [data-i18n='en'] {
   max-width: 62ch;
 }
 
+.case-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+}
+
+.case-section-index {
+  flex: none;
+  color: var(--color-primary-ink);
+  font-variant-numeric: tabular-nums;
+}
+
 .case-heading {
+  position: relative;
+  z-index: 0;
   font-size: 0.9375rem;
   font-weight: 500;
   letter-spacing: -0.014em;
@@ -2401,11 +3125,90 @@ html[data-lang='es'] [data-i18n='en'] {
   color: var(--color-muted);
 }
 
+.case-outcome-mark {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+.case-outcome-mark .doodle {
+  z-index: -1;
+  top: 54%;
+  left: -0.22rem;
+  width: calc(100% + 0.44rem);
+  height: 0.85rem;
+  color: var(--color-primary-wash);
+  transform: rotate(-1deg);
+}
+
+.case-section-note {
+  position: relative;
+  align-self: flex-end;
+  max-width: 14rem;
+  margin: 0.35rem 0 0;
+  padding-top: 0.45rem;
+  color: var(--color-primary-ink) !important;
+  line-height: 1.05;
+  text-align: right;
+  text-wrap: balance;
+}
+
+.case-section-note .doodle {
+  top: -1.75rem;
+  right: 0.2rem;
+  width: 1.4rem;
+  height: 2.15rem;
+  transform: rotate(17deg);
+}
+
+.case-facts-card {
+  position: relative;
+  padding: 1.125rem;
+  border-radius: 12px;
+  background-color: rgb(255 255 255 / 0.025);
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 1.125rem 1.125rem;
+  background-position: -1px -1px;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+/* Two short strokes make the panel feel marked up without introducing a
+   second frame doodle whose only job would be imitating this border. */
+.case-facts-card::before,
+.case-facts-card::after {
+  content: '';
+  position: absolute;
+  width: 1.45rem;
+  height: 0.55rem;
+  border-top: 1.5px solid var(--color-primary);
+  pointer-events: none;
+}
+
+.case-facts-card::before {
+  top: -0.15rem;
+  left: 0.85rem;
+  transform: rotate(-4deg);
+}
+
+.case-facts-card::after {
+  right: 0.85rem;
+  bottom: -0.4rem;
+  transform: rotate(176deg);
+}
+
+.case-facts-title {
+  margin: 0 0 0.75rem;
+  color: var(--color-primary-ink);
+  line-height: 1;
+}
+
 .case-facts {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  padding-top: 0.25rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--color-line);
 }
 
@@ -2433,6 +3236,11 @@ html[data-lang='es'] [data-i18n='en'] {
   grid-column: 1 / -1;
 }
 
+.case-shot {
+  position: relative;
+  min-width: 0;
+}
+
 .case-shot img {
   width: 100%;
   border-radius: 12px;
@@ -2443,6 +3251,73 @@ html[data-lang='es'] [data-i18n='en'] {
   margin-top: 0.5rem;
   color: var(--color-faint);
   font-size: 0.75rem;
+}
+
+.case-shot-note {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  max-width: min(14rem, calc(100% - 4.5rem));
+  margin: 0;
+  padding: 0.25rem 0.625rem 0.3125rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  color: var(--color-primary-ink);
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.case-shot-note .doodle {
+  top: 50%;
+  left: -2.65rem;
+  width: 3rem;
+  height: 1.3rem;
+  transform: translateY(-50%) rotate(-4deg);
+}
+
+@media (min-width: 48rem) {
+  .case-shot-wide {
+    width: 92%;
+  }
+
+  .case-shot-wide:nth-child(odd) {
+    justify-self: start;
+  }
+
+  .case-shot-wide:nth-child(even) {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .case-hero-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding-bottom: 0;
+  }
+
+  .case-hero-note,
+  .case-shot-note {
+    position: relative;
+    inset: auto;
+    align-self: flex-end;
+    max-width: calc(100% - 3rem);
+  }
+
+  .case-shot-note {
+    width: fit-content;
+    margin: 0.5rem 0 0 auto;
+  }
+
+  .case-hero-note .doodle,
+  .case-shot-note .doodle {
+    top: 50%;
+    left: -2.65rem;
+    transform: translateY(-50%) rotate(-4deg);
+  }
 }
 
 /* The mirror of `.track-out` on the other column, and deliberately the heavier
@@ -2508,6 +3383,27 @@ html[data-lang='es'] [data-i18n='en'] {
   .track-enter {
     opacity: 1;
     transform: none;
+  }
+
+  /* The copy arrives written. Dropping the animation is enough — the resting
+     state of a `.word` is the resolved word, which is the point of animating
+     it `backwards` rather than `forwards`. */
+  .stream .word {
+    animation: none;
+  }
+
+  .stream .word::after {
+    display: none;
+  }
+
+  /* Nothing to resolve to — the sweep is the travel and the light both, so it
+     simply never happens. */
+  .now-sweep {
+    display: none;
+  }
+
+  .contact-link::before {
+    display: none;
   }
 
   /* The rail resolves to fully drawn rather than mid-grow. */

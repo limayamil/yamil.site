@@ -1,0 +1,58 @@
+---
+/**
+ * `Bilingual.astro`, streamed: both languages rendered, CSS shows one, and the
+ * words of whichever is showing resolve out of blur in reading order.
+ *
+ * Drop-in for `<Bilingual>` wherever the parent is a block of prose — the
+ * parent element needs the `stream` class, which is what carries the timing
+ * (see the "Streaming copy" block in `global.css`). This only numbers the
+ * words; every duration lives in the stylesheet.
+ *
+ * Each language counts from `start` on its own. They are never on screen at the
+ * same time, so a shared counter would only make the second one start late.
+ */
+import { isWord, streamChunks } from '../lib/stream';
+
+interface Props {
+  es: string;
+  en: string;
+  /** First word index, for copy that continues a sequence already begun. */
+  start?: number;
+  /** Applied to each language's wrapper, the way `Bilingual` does it. */
+  class?: string;
+}
+
+const { es, en, start = 0, class: className }: Props = Astro.props;
+
+const languages = [
+  ['es', es],
+  ['en', en],
+] as const;
+
+const rendered = languages.map(([lang, text]) => {
+  let word = start;
+  return {
+    lang,
+    chunks: streamChunks(text).map((chunk) => ({
+      chunk,
+      index: isWord(chunk) ? word++ : null,
+    })),
+  };
+});
+---
+
+{
+  rendered.map(({ lang, chunks }) => (
+    <span lang={lang} data-i18n={lang} class={className}>
+      {chunks.map(({ chunk, index }) =>
+        index === null ? (
+          chunk
+        ) : (
+          <span class="word" style={`--w:${index}`}>
+            {chunk}
+          </span>
+        ),
+      )}
+    </span>
+  ))
+}

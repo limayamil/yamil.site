@@ -24,7 +24,9 @@ import { track } from '../data/track';
 import Bilingual from './Bilingual.astro';
 import CompanyLogo from './CompanyLogo.astro';
 import ExternalArrow from './ExternalArrow.astro';
+import GitHubActivity from './GitHubActivity.astro';
 import Icon from './Icon.astro';
+import Stream from './Stream.astro';
 
 const languages = ['es', 'en'] as const;
 
@@ -101,18 +103,28 @@ const stats = [
     <h2 id="track-title" class="track-title display">
       <Bilingual es={track.title.es} en={track.title.en} />
     </h2>
-    <p class="col-prose prose-tight text-muted">
-      <Bilingual es={track.lead.es} en={track.lead.en} />
+    {/* Streams, like the bio it replaces — see the "Streaming copy" block in
+        `global.css`. The two labels above it do not: a kicker and a title are
+        named, not written, and a three-word label resolving one word at a time
+        reads as a stutter rather than as a stream. */}
+    <p class="col-prose prose-tight stream text-muted">
+      <Stream es={track.lead.es} en={track.lead.en} />
     </p>
   </header>
 
+  <div class="track-enter" style="--i:2">
+    <GitHubActivity />
+  </div>
+
   {/* Same shape as `.case-metrics` on the other side of the page — three
       figures that say how big the record is before anyone reads it. */}
-  <ul class="track-stats track-enter" style="--i:2">
+  <ul class="track-stats track-enter" style="--i:3">
     {
       stats.map((stat) => (
         <li>
-          <span class="track-stat-value">{stat.value}</span>
+          {/* The figure ships written — job 11 in `motion.ts` reads it back out
+              and counts up to it. With JS off it is simply already there. */}
+          <span class="track-stat-value" data-counter>{stat.value}</span>
           <span class="label track-stat-label">
             <Bilingual es={stat.label.es} en={stat.label.en} />
           </span>
@@ -126,7 +138,7 @@ const stats = [
       entries.map((entry, index) => (
         <li
           class="track-entry track-enter"
-          style={`--i:${index + 4}`}
+          style={`--i:${index + 5}`}
           data-axis={entry.axis}
           {...(entry.end === null ? { 'data-current': '' } : {})}
         >
@@ -153,8 +165,13 @@ const stats = [
           <p class="track-company">
             <CompanyLogo name={entry.company} />
           </p>
-          <p class="track-note prose-tight">
-            <Bilingual es={entry.note.es} en={entry.note.en} />
+          {/* Each note counts from zero on its own. The entries are already
+              staggered 45ms apart by `--i`, which is what turns fourteen
+              independent streams into one cascade down the rail; carrying a
+              running counter across them instead would put the last note four
+              seconds behind the first. */}
+          <p class="track-note prose-tight stream">
+            <Stream es={entry.note.es} en={entry.note.en} />
           </p>
 
           {/* The discipline, for a screen reader only: sighted readers get it
@@ -168,7 +185,7 @@ const stats = [
 
   <a
     class="link track-out track-enter"
-    style={`--i:${entries.length + 4}`}
+    style={`--i:${entries.length + 5}`}
     href={profile.experience.cta.source}
     target="_blank"
     rel="noreferrer noopener"

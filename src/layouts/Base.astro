@@ -15,7 +15,7 @@ interface Props {
 // nothing a crawler will ever read.
 const { title = meta.title.es, description = meta.description.es } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? meta.url);
-const ogImage = new URL('/og.png', Astro.site ?? meta.url);
+const ogImage = new URL('/og-square.png', Astro.site ?? meta.url);
 ---
 
 <!doctype html>
@@ -67,17 +67,28 @@ const ogImage = new URL('/og.png', Astro.site ?? meta.url);
       crossorigin
     />
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#120906" />
     <meta name="color-scheme" content="dark" />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Yami hace cosas" />
+    <meta property="og:locale" content="es_AR" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image:secure_url" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="1200" />
+    <meta property="og:image:alt" content="Logo ilustrado de Yami" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content="Logo ilustrado de Yami" />
 
     <link rel="sitemap" href="/sitemap-index.xml" />
 

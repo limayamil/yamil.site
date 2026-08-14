@@ -11,6 +11,7 @@
     "'poster' es obligatorio siempre (también sirve de poster del video). 'video' es opcional — si está, el tile lo reproduce en hover/scroll.",
     "detail.facts es la ficha técnica (Rol / Cliente / Año / Stack, etc.) — array abierto, tantas filas como haga falta.",
     "detail.sections es el cuerpo del caso: heading + uno o más párrafos (body es un array de localized, un elemento por párrafo).",
+    "detail.heroNote, detail.sections[].note y detail.gallery[].note son llamadas manuscritas opcionales de 2–6 palabras. Usá como máximo una nota de sección y una de galería por caso.",
     "detail.metrics son números duros — puede ir vacío si el caso no tiene métricas para mostrar.",
     "detail.gallery es opcional — 'wide: true' hace que una imagen ocupe las dos columnas de la grilla de galería.",
     "detail.link es opcional — para linkear al trabajo real cuando existe."
@@ -44,6 +45,10 @@
       "es": "Párrafo de apertura del caso — una o dos oraciones, se muestra más grande que el resto del cuerpo.",
       "en": "Opening paragraph of the case — one or two sentences, rendered larger than the body."
     },
+    "heroNote": {
+      "es": "Nota técnica breve",
+      "en": "Short technical note"
+    },
     "facts": [
       {
         "label": { "es": "Rol", "en": "Role" },
@@ -66,7 +71,11 @@
             "es": "Segundo párrafo, opcional — se puede agregar cuantos hagan falta.",
             "en": "Second paragraph, optional — add as many as needed."
           }
-        ]
+        ],
+        "note": {
+          "es": "Llamada manuscrita opcional",
+          "en": "Optional handwritten callout"
+        }
       },
       {
         "heading": { "es": "Qué hice", "en": "What I did" },
@@ -98,6 +107,7 @@
         "src": "/media/nombre-de-imagen.svg",
         "alt": { "es": "Descripción de la imagen", "en": "Image description" },
         "caption": { "es": "Pie de foto opcional", "en": "Optional caption" },
+        "note": { "es": "Detalle para señalar", "en": "Detail to point out" },
         "wide": false
       }
     ],

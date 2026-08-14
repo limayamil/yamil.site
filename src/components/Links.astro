@@ -1,18 +1,22 @@
 ---
 import { profile } from '../data/profile';
+import ContactIcon from './ContactIcon.astro';
 import ExternalArrow from './ExternalArrow.astro';
 ---
 
-<ul class="flex flex-wrap gap-x-5 gap-y-2">
+<ul class="contact-links">
   {
     profile.links.map((link) => (
       <li>
         <a
-          class="link"
+          class="contact-link"
           href={link.href}
           {...(link.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
         >
-          {link.label}
+          <span class="contact-link-content">
+            <ContactIcon name={link.icon} />
+            <span>{link.label}</span>
+          </span>
           {link.external && <ExternalArrow />}
         </a>
       </li>

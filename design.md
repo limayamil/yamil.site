@@ -81,18 +81,21 @@ El wash también subió, de 0.16 a 0.28: sobre oscuro, 0.16 de alfa no se ve.
 Los números están también como comentario en el `@theme`, porque el lugar donde
 se comete el error es el lugar donde hay que leerlos.
 
-### El punto de disponibilidad sigue verde
+### El estado actual sigue verde
 
-`.dot` mantiene su `#2f9e5f` hardcodeado. No es un olvido: pintar de rojo-naranja
-el indicador de "disponible para proyectos" dice exactamente lo contrario de lo
-que el texto al lado dice. El verde ahí no es decoración, es semántica. Sobre el
-fondo nuevo da 4.3:1 en el peor caso, de sobra para el 3:1 que pide un grafismo.
+El borde de `.now` conserva el verde de estado como un `rgb(47 158 95 / 0.55)`
+local, pero sólo en su base: un gradiente baja desde `--color-line` arriba hasta
+ese verde abajo. Lo dibuja un `::before` enmascarado de 1px para que el color
+viva exclusivamente en el perímetro y no tiña el relleno translúcido del panel.
+No es un olvido ni decoración, sino la señal semántica del trabajo actual. El
+halo exterior también nace debajo del panel y a baja opacidad, para sostener esa
+lectura sin competir con el barrido de color que lo cruza al entrar.
 
 ---
 
 ## 2. Sistema de doodles
 
-Las marcas a mano alzada — óvalo, flecha, resaltador — se generan con
+Las marcas a mano alzada — óvalo, flecha y resaltador — se generan con
 [rough.js](https://roughjs.com) en [src/lib/doodles.ts](src/lib/doodles.ts) y se
 renderizan con [Doodle.astro](src/components/Doodle.astro).
 
@@ -248,7 +251,7 @@ unifican, el que manda es `.display`.
 
 ## 4. Inventario de anotaciones
 
-Cinco gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
+Once gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 
 | # | Dónde | Marca | Se dispara con |
 |---|---|---|---|
@@ -257,13 +260,25 @@ Cinco gestos. Esta tabla es la fuente de verdad: si se agrega uno, va acá.
 | 3 | Primer término glosado del bio | Resaltador (`highlight`) | `.enter` del bio (`--i:3`) |
 | 4 | Links de contacto — [Links.astro](src/components/Links.astro) | Subrayado en primario (CSS puro) | hover / focus |
 | 5 | Ranura de reposo del panel de ejes — [Axes.astro](src/components/Axes.astro) | Flecha hacia arriba (`arrowUp`) + nota manuscrita | `.enter` de la columna |
+| 6 | Borde inferior del hero de cada caso — [ProjectDetail.astro](src/components/ProjectDetail.astro) | Flecha (`arrowLeft`) + nota técnica manuscrita | `.case-enter` (`--i:2`) |
+| 7 | Una sección elegida por caso | Flecha (`arrowUp`) + nota técnica manuscrita | `.case-enter` del cuerpo (`--i:3`) |
+| 8 | Encabezado de la última sección | Resaltador (`highlight`) | `.case-enter` del cuerpo (`--i:3`) |
+| 9 | Primera métrica, cuando existe | Óvalo (`oval`) | `.case-enter` de métricas (`--i:2`) |
+| 10 | Una captura elegida por caso | Flecha (`arrowLeft`) + nota técnica manuscrita | `.case-enter` de galería (`--i:4`) |
+| 11 | Ficha técnica del caso | Dos trazos cortos en las esquinas (CSS puro) + fondo de grilla tenue | Con el bloque |
 
-Son cinco gestos pero seis elementos en el HTML: el óvalo y el resaltador se
-renderizan una vez por idioma, porque cada uno marca una palabra distinta en ES
-y en EN.
+Los cinco primeros gestos pertenecen al intro. El óvalo y el resaltador de esa
+columna se renderizan una vez por idioma, porque marcan palabras distintas. Los
+seis restantes forman la gramática común de los casos: tres notas específicas,
+un cierre, una métrica opcional y la ficha técnica.
 
 El texto de las notas #2 y #5 es dato, no markup: `profile.contactNote` y
 `profile.restingNote` en [profile.ts](src/data/profile.ts).
+
+Las notas #6, #7 y #10 son contenido editorial y viven junto a lo que explican
+en `detail.heroNote`, `detail.sections[].note` y `detail.gallery[].note`. Cada
+caso usa como máximo una de cada clase, en pares `{ es, en }` de dos a seis
+palabras. No son slogans: condensan una decisión, un recorrido o un resultado.
 
 El recorrido ([Track.astro](src/components/Track.astro), §9) tuvo una séptima
 anotación — la misma flecha-más-nota que la #5, apuntando a una leyenda de tres
@@ -317,10 +332,10 @@ vez de sumarse. El estado activo lo siguen llevando el color y el chevron.
 - **Los doodles no suman altura de flujo.** Siempre `position: absolute` y
   `pointer-events: none`. Es lo que hace que anotar algo nunca mueva el layout,
   y lo que mantiene `.intro` dentro de su presupuesto.
-- **`aria-hidden` sin excepción.** Son decoración sobre texto que ya dice la
-  cosa. Un lector de pantalla anunciando "círculo" alrededor de un nombre es
-  ruido. La nota manuscrita también va `aria-hidden`: "escribime → Email,
-  LinkedIn" no aporta nada leído en voz alta.
+- **Los trazos llevan `aria-hidden` sin excepción.** Un lector de pantalla
+  anunciando "círculo" alrededor de un nombre es ruido. Las notas redundantes
+  del intro también se ocultan; las tres notas editoriales del caso no, porque
+  son contenido propio y no etiquetas del dibujo.
 - **Toda animación nueva se resuelve en el bloque de `prefers-reduced-motion`.**
   Las marcas son el punto; la pluma recorriéndolas no. Con la query activa las
   marcas aparecen dibujadas y el subrayado del eje sigue atado al estado activo
@@ -406,14 +421,14 @@ al próximo 0.5rem.
 
 | Qué | Cuánto |
 |---|---|
-| Markup de doodles en el HTML | 5.2KB, en 6 elementos (cinco gestos, dos de ellos por idioma — §4) |
-| `index.html` completo | 168.6KB → **37.4KB gzip** |
+| Markup de doodles en el HTML | 15.6KB, en 19 elementos (intro + tres casos renderizados — §4) |
+| `index.html` completo | 188.2KB → **40.7KB gzip** |
 | Caveat (no preloadeado, `swap`) | 47.7KB |
 | `motion.ts` compilado | 9.3KB → **3.3KB gzip** |
 | `veil.ts` compilado | 5.3KB → **2.3KB gzip** |
 
 Los dos JS son todo el runtime del sitio y no tienen una sola dependencia. El
-HTML es lo que creció, y creció a propósito: los nueve casos y las catorce
+HTML es lo que creció, y creció a propósito: los casos y las catorce
 entradas del recorrido viajan renderizados adentro (§8, §9).
 
 El `d` de cada path se redondea a dos decimales en `doodles.ts`; rough emite ~17,
@@ -554,17 +569,30 @@ conserva su borde superior en el caso normal.
 El tamaño **es** la afirmación. No hay otra señal de jerarquía: ni badges, ni
 "destacado", ni orden implícito.
 
-| Tier | ≥62rem (3 col) | 34–62rem (2 col) | <34rem (1 col) |
+| Tier | ≥62rem (3 casos/fila) | 34–62rem (2 col) | <34rem (1 col) |
 |---|---|---|---|
-| `primary` | 3 × 2 | 2 × 2 | ratio 5/4 |
-| `secondary` + `horizontal` | 2 × 1 | 2 × 1 | ratio 16/11 |
-| `secondary` + `vertical` | 1 × 2 | 1 × 2 | ratio 4/5 |
-| `tertiary` | 1 × 1 | 1 × 1 | ratio 16/11 |
+| `primary` | 1 × 3 | 2 × 3 | fila de 8.75rem |
+| `secondary` + `horizontal` | 1 × 2 | 2 × 2 | fila de 8.75rem |
+| `secondary` + `vertical` | 1 × 2 | 1 × 2 | fila de 8.75rem |
+| `tertiary` | 1 × 2 | 1 × 2 | fila de 8.75rem |
 
-En una sola columna los spans no significan nada, así que cada tier declara su
-proporción vía `--tile-ratio` en lugar de su span. La propiedad se setea por
-tier y el `aspect-ratio` se apaga con una única regla de la misma
-especificidad — por eso es una custom property y no el `aspect-ratio` directo.
+**Dos filas es el piso.** Un tile de una
+sola fila deja los ~105px de copia sobre una astilla de arte, y al lado de un
+vecino de dos filas esa astilla no se lee como "menos importante" sino como
+sobra: la grilla parece rota, no jerarquizada. El piso vive en `.tile` dentro del
+media query de 34rem y cada tier declara sólo lo que agrega encima.
+
+A dos columnas la jerarquía todavía combina ancho y alto. Desde 62rem ningún caso
+ocupa más de una de las tres columnas: una fila completa muestra al menos tres
+casos, y `primary` conserva jerarquía con una tercera fila en lugar de ensancharse.
+El resto comparte una caja compacta de dos filas.
+
+En una sola columna el bento se vuelve lista: todos los tiers comparten una fila
+de 8.75rem, la imagen sigue siendo fondo y la bajada se oculta. La jerarquía por
+tamaño se recupera desde 34rem; en teléfono importa más poder recorrer los casos
+rápido que sostener proporciones distintas en una columna donde los spans no
+significan nada. Las proporciones base se conservan como fallback y el bloque
+mobile las apaga con `aspect-ratio: auto`.
 
 `grid-auto-flow: dense` es lo que evita que la grilla se lea como una escalera:
 un tile vertical detrás de uno horizontal rellena el hueco en vez de dejarlo.
@@ -572,20 +600,16 @@ El costo es que `dense` desacopla el orden visual del orden del DOM, así que el
 `order` de `projects.json` tiene que quedar cerca del orden de lectura; dense
 sólo rellena huecos, no baraja.
 
-**El índice completo empaqueta exacto.** Con 9 proyectos las celdas suman 27, que
-son 9 filas de 3, y el `order` actual las cierra sin un hueco:
+**El índice empaqueta exacto.** Hoy son tres proyectos `secondary`; desde 62rem
+cierran una fila de tres casos, todos con dos unidades de alto:
 
 ```
-filas 1–2   primary                      (3×2 = 6)
-filas 3–4   vertical vertical ter ter    (2+2+1+1 = 6)
-filas 5–6   primary                      (3×2 = 6)
-fila  7     horizontal ter               (2+1 = 3)
-filas 8–9   primary                      (3×2 = 6)
+filas 1–2   Asofix  Gordo  Mendio
 ```
 
-Si se agrega o saca un proyecto hay que rehacer esta cuenta o aceptar el hueco
-en la cola. Filtrado por un solo eje quedan 3 tiles y la cola queda dispareja:
-tres piezas no llenan una grilla de tres columnas, y está bien que así sea.
+Agregar o sacar proyectos puede dejar una cola incompleta, y el filtrado por un
+solo eje también. Está bien que así sea; ninguna tarjeta crece para llenar ese
+hueco y romper el límite de un tercio del ancho.
 
 ### El scrim del tile, que es load-bearing
 
@@ -633,15 +657,31 @@ blanco, que sobre arte claro se lo llevaría puesto.
 
 ### El alto de fila
 
-`grid-auto-rows: clamp(10rem, 14vw, 13.5rem)`. El mínimo no es decorativo: un
-terciario carga eje + título + bajada, que son ~105px de copia, y abajo de 10rem
-el scrim detrás de esa copia se come la celda entera y el arte deja de leerse.
+En desktop, `grid-auto-rows: clamp(7.25rem, 8.5vw, 8.5rem)` es media caja común:
+con el piso de dos filas cada caso mide entre 14.5rem y 17rem. El `primary` suma
+una tercera fila. Ese mínimo deja entrar eje + título + bajada sin que el scrim
+se coma la imagen y achica claramente la escala anterior de 20–27rem.
 
 ### Los tiles no llevan marca
 
 Misma razón que los ejes (§4): el tile ya tiene su propia estructura — hairline,
 radio, scrim — y una anotación encima compite con eso en vez de sumarle. La
 única marca del bento es el chevron, que es afordancia, no anotación.
+
+### El encabezado del caso separa contexto y contribución
+
+El kicker no clasifica el trabajo: dice únicamente **“Caso” + año**. El eje
+(`engineering`, `motion`, `ops`) ya organiza y filtra el bento, pero dentro del
+detalle repetía roles más precisos —“Front-end Development” contra “Desarrollo
+front-end”, por ejemplo— y convertía el encabezado en una taxonomía duplicada.
+El cliente tampoco entra ahí porque ya abre el título y, cuando existe el
+recurso, vuelve como marca visual.
+
+Los roles responden otra pregunta: **qué hice**. Por eso se leen como etiquetas
+estáticas con forma de chip, después de la bajada. Usan inset-ring, sin hover ni
+relleno de estado: se parecen a `.track-tag` porque son metadata, y no al `.chip`
+del filtro, cuya forma tiene que comunicar que se puede accionar y quedar
+prendido.
 
 ### Peso
 
@@ -675,6 +715,13 @@ Catorce puestos, ocho empresas, desde 2010. El dato está en
 [track.ts](src/data/track.ts); el orden lo resuelve el build (`start`
 descendente, empate por duración) así que el archivo se puede escribir en
 cualquier orden.
+
+Antes de las tres métricas, `GitHubActivity.astro` trae el último año de
+actividad pública de `@limayamil` como SVG desde GitHub Heat. No suma runtime ni
+token al sitio: la imagen carga en diferido, viaja sin referrer, usa una paleta
+derivada de `--color-primary` y no expone un enlace ni el usuario en la interfaz.
+Meses, días y leyenda se esconden en el SVG porque a 19rem serían ruido; el
+caption bilingüe conserva el contexto aunque la imagen externa no llegue.
 
 ### La columna quedó en tres partes
 
@@ -814,7 +861,7 @@ y cada variante sólo tiene que decir en qué se diferencia.
 
 | Clase | Peso | Trabajo |
 |---|---|---|
-| `.link` | Lo que herede | La forma base. Links de contacto |
+| `.link` | Lo que herede | La forma base. Links inline |
 | `.track-out` | `--color-muted`, 13px | La salida al pie de una lista de catorce entradas |
 | `.case-link` | `--color-ink`, 15px | La URL viva del proyecto — el link más fuerte de la página |
 
@@ -822,6 +869,11 @@ Que `.track-out` y `.case-link` pesen distinto es a propósito: son el mismo
 lugar estructural en columnas opuestas pero no el mismo pedido. Uno es una nota
 al pie, el otro es lo que el caso entero está argumentando que vayas a ver. Los
 dos lo **declaran**; ninguno lo hereda por descuido.
+
+Los accesos de contacto son la excepción: `.contact-link` los convierte en
+botones píldora con fondo primario, el icono del canal y, cuando corresponde,
+la flecha externa. En hover y `:focus-visible` repiten el mismo barrido espectral
+que cruza una vez el contenedor `.now` al entrar.
 
 **Todo lo que sale del sitio lleva `<ExternalArrow />`.** Es regla, no decisión
 por instancia — la diagonal de 8px con las mismas reglas de dibujo que
@@ -868,12 +920,13 @@ distintos:
 |---|---|---|
 | `.chip` | `border: 1px solid var(--color-line)` | — |
 | `.filter-clear` | `box-shadow: inset 0 0 0 1px var(--color-line)` | `rgb(255 255 255 / 0.04)` |
-| `.track-tag` | `box-shadow: inset 0 0 0 1px var(--color-line)` | — |
+| `.track-tag`, `.case-roles li` | `box-shadow: inset 0 0 0 1px var(--color-line)` | — |
 
 `.chip` y `.filter-clear` son **la misma interacción** —poner el filtro, sacar
-el filtro— en columnas opuestas, y no se parecen. `.track-tag` ni siquiera es un
-control, es una etiqueta. Es deuda conocida y está acá para que se vea; si se
-unifica, el inset-ring es el que gana, porque no ocupa caja.
+el filtro— en columnas opuestas, y no se parecen. `.track-tag` y los roles del
+caso ni siquiera son controles: son etiquetas y comparten receta. Es deuda
+conocida y está acá para que se vea; si se unifica, el inset-ring es el que gana,
+porque no ocupa caja.
 
 ### Focus
 
@@ -907,7 +960,7 @@ Ocho valores. Las píldoras son coherentes; los paneles no tanto.
 | `8px` | `.gloss-note` |
 | `12px` / `0.75rem` | `.case-shot img` / `.now` — **el mismo número en dos unidades** |
 | `14px` | `.tile`, `.case-hero` |
-| `50%` | `.dot`, `.track-node` |
+| `50%` | `.track-node` |
 | `999px` | Las cuatro píldoras |
 
 ---
