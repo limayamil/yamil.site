@@ -443,8 +443,9 @@ la mitad.
 
 ## 7. El fondo
 
-Rayos volumétricos saliendo de una fuente de luz que deriva fuera de cuadro,
-abajo a la izquierda. Es un fragment shader de WebGL2 en
+En mobile, un gradiente CSS estático con dos luces radiales que nacen abajo a la
+izquierda. Desde 62rem, esa misma composición se realza con rayos volumétricos
+animados por un fragment shader de WebGL2 en
 [src/scripts/veil.ts](src/scripts/veil.ts), montado por
 [SolarVeil.astro](src/components/SolarVeil.astro) sobre un canvas fijo a todo el
 viewport.
@@ -474,10 +475,12 @@ compilar en [docs/reference](docs/reference/).
 
 Es la distinción que sostiene toda la §1, y confundirlas es el error:
 
-- **El canvas es mejora progresiva.** Sin WebGL2, con el contexto perdido o con
-  el script bloqueado la página tiene que quedar igual de legible. Por eso `body`
-  lleva un gradiente estático que lo aproxima, y por eso `--color-bg` es el mismo
-  valor que `uColorA`.
+- **El canvas es una mejora progresiva sólo de escritorio.** Debajo de 62rem se
+  oculta y el módulo del shader ni siquiera se solicita: el gradiente estático de
+  `body` es el fondo definitivo. Por encima de ese breakpoint, sin WebGL2, con
+  el contexto perdido o con el script bloqueado la página tiene que quedar igual
+  de legible. Los tres colores del gradiente son los mismos uniforms del shader,
+  y `--color-bg` conserva el valor de `uColorA`.
 - **El scrim no lo es.** `.veil-scrim` es la capa a través de la cual están
   medidas todas las relaciones de contraste, así que existe pinte o no pinte el
   canvas. De ahí que sean dos elementos y no un filtro sobre uno.
@@ -519,11 +522,15 @@ resultados de la última corrida están en las tablas de §1.
 
 `glow` a 0.68 dispara cuatro muestreos extra del generador, y cada muestreo corre
 `fbm` de 5 octavas dos veces: cinco pasadas caras por píxel. Eso es lo que fija
-las tres decisiones de contención en `veil.ts`, y ninguna es opcional:
+las decisiones de contención del fondo, y ninguna es opcional:
 
+- **Debajo de 62rem no hay WebGL.** El import es condicional, el canvas se oculta
+  y el gradiente CSS no ejecuta trabajo por frame.
 - **dpr topeado en 1.5** (el original usaba 2). El coste escala con el cuadrado.
 - **El loop se corta con `visibilitychange`.** El original seguía renderizando
   aun "pausado" — sólo congelaba el reloj.
+- **El loop se corta al cruzar al layout mobile.** Si una ventana se achica tras
+  cargar el shader, no sigue consumiendo cuadros detrás del canvas oculto.
 - **`prefers-reduced-motion` dibuja un frame y para.** El original no contemplaba
   la query. Vale la misma regla de §5: la imagen es el punto, el movimiento no.
 

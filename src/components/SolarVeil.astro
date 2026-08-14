@@ -1,13 +1,14 @@
 ---
 /**
- * The animated page background, plus the scrim that keeps text on top of it
- * readable. Both are fixed to the viewport and neither is in the flow, so the
- * layout above is unaware of them.
+ * The page background, plus the scrim that keeps text on top of it readable.
+ * Mobile uses the static CSS gradient; wider viewports progressively enhance
+ * it with the animated canvas. Both are fixed to the viewport and neither is
+ * in the flow, so the layout above is unaware of them.
  *
  * Two elements rather than one because they are two different contracts: the
- * canvas is progressive enhancement and may legitimately never paint, while
- * the scrim is what the contrast ratios in design.md §7 are measured against
- * and therefore has to exist whether or not WebGL does.
+ * canvas is desktop-only progressive enhancement and may legitimately never
+ * paint, while the scrim is what the contrast ratios in design.md §7 are
+ * measured against and therefore has to exist whether or not WebGL does.
  *
  * `aria-hidden` on the wrapper: it is a background. Styles live in global.css
  * with the rest of the layout, and the shader in scripts/veil.ts.
@@ -19,4 +20,17 @@
   <div class="veil-scrim"></div>
 </div>
 
-<script src="../scripts/veil.ts"></script>
+<script>
+  const desktopBackground = window.matchMedia('(min-width: 62rem)');
+
+  const loadAnimatedBackground = () => {
+    if (!desktopBackground.matches) return;
+    void import('../scripts/veil.ts');
+  };
+
+  if (desktopBackground.matches) {
+    loadAnimatedBackground();
+  } else {
+    desktopBackground.addEventListener('change', loadAnimatedBackground, { once: true });
+  }
+</script>

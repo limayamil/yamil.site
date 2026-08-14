@@ -50,9 +50,11 @@
 --------------------------------------------------------------------------- */
 
 @theme {
-  /* --color-bg is also the shader's darkest colour (uColorA in veil.ts), so
-     the static fallback and the first rendered frame start from one value. */
+  /* These are the shader's three colours. Mobile composes the same palette as
+     a static CSS gradient instead; wider viewports use them in WebGL. */
   --color-bg: #120906;
+  --color-veil-mid: #c9471e;
+  --color-veil-light: #ffe0a8;
   /* Opaque, deliberately: every surface using it sits over a moving image, and
      a translucent panel over that is unreadable. */
   --color-surface: #1c110b;
@@ -122,13 +124,23 @@ html {
 
 body {
   margin: 0;
-  /* What the page is actually laid out against. The canvas draws over this and
-     may legitimately never do so — no WebGL2, a lost context, a blocked
-     script — so the flat token alone would leave the page noticeably deader
-     than intended. The gradient is a crude still of the shader: one warm glow
-     low and to the left, where its light source sits. */
+  /* What the page is actually laid out against. Mobile deliberately keeps this
+     still; on wider viewports the canvas draws over it and may legitimately
+     never do so — no WebGL2, a lost context, a blocked script. The two glows
+     preserve the shader's palette and its low-left light source at zero
+     runtime cost. */
   background:
-    radial-gradient(120% 90% at 8% 104%, #331409 0%, rgb(51 20 9 / 0) 62%),
+    radial-gradient(
+      105% 82% at -8% 108%,
+      color-mix(in srgb, var(--color-veil-light) 58%, transparent) 0%,
+      color-mix(in srgb, var(--color-veil-mid) 44%, transparent) 28%,
+      transparent 64%
+    ),
+    radial-gradient(
+      92% 72% at 28% 104%,
+      color-mix(in srgb, var(--color-veil-mid) 36%, transparent) 0%,
+      transparent 72%
+    ),
     var(--color-bg);
   background-attachment: fixed;
   color: var(--color-ink);
@@ -809,11 +821,13 @@ html[data-lang='es'] [data-i18n='en'] {
 }
 
 /* ---------------------------------------------------------------------------
-   The veil — the animated background and the scrim that makes it survivable.
+   The veil — a static mobile background, desktop animation, and the scrim that
+   makes both survivable.
 
-   The canvas is enhancement: `veil.ts` may find no WebGL2, may lose its
-   context, may never run at all, and the page has to be no worse than the
-   static gradient on `body` when that happens.
+   The canvas is desktop-only enhancement: below 62rem it is not displayed and
+   `veil.ts` is not downloaded. Above that it may find no WebGL2, may lose its
+   context or never run at all, and the page has to be no worse than the static
+   gradient on `body` when that happens.
 
    The scrim is not enhancement. It is the thing every contrast ratio in the
    `@theme` block is measured through, so it has to be present whether or not
@@ -839,6 +853,12 @@ html[data-lang='es'] [data-i18n='en'] {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+@media (max-width: 61.999rem) {
+  .veil canvas {
+    display: none;
+  }
 }
 
 .veil-scrim {

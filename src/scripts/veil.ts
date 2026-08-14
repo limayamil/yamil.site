@@ -1,5 +1,7 @@
 /**
- * The page background — volumetric rays drifting across a full-viewport canvas.
+ * The desktop page background — volumetric rays drifting across a
+ * full-viewport canvas. Mobile never downloads this module and uses the static
+ * gradient in `global.css` instead.
  *
  * The shader came from a React component that drove it through `ogl`. Neither
  * React nor `ogl` are dependencies here and neither is worth becoming one for
@@ -191,6 +193,9 @@ function initVeil(): void {
   const canvas = document.querySelector<HTMLCanvasElement>('[data-veil]');
   if (!canvas) return;
 
+  const desktopBackground = window.matchMedia('(min-width: 62rem)');
+  if (!desktopBackground.matches) return;
+
   // Every failure below leaves the canvas blank, which is survivable: the
   // static gradient painted on `body` is what the page is actually laid out
   // against, and the veil only ever adds to it.
@@ -268,7 +273,14 @@ function initVeil(): void {
   };
 
   const start = () => {
-    if (frame !== 0 || reducedMotion.matches || document.hidden) return;
+    if (
+      frame !== 0 ||
+      reducedMotion.matches ||
+      !desktopBackground.matches ||
+      document.hidden
+    ) {
+      return;
+    }
     previous = 0;
     frame = requestAnimationFrame(render);
   };
@@ -281,8 +293,10 @@ function initVeil(): void {
 
   // Reduced motion gets the image, not the movement: one frame, then nothing.
   // The original component had no notion of the query at all.
-  const applyMotionPreference = () => {
-    if (reducedMotion.matches) {
+  const applyRenderingPreference = () => {
+    if (!desktopBackground.matches) {
+      stop();
+    } else if (reducedMotion.matches) {
       stop();
       draw(elapsed / 1000);
     } else {
@@ -308,7 +322,8 @@ function initVeil(): void {
   signal.addEventListener('abort', () => observer.disconnect());
   resize();
 
-  reducedMotion.addEventListener('change', applyMotionPreference, { signal });
+  reducedMotion.addEventListener('change', applyRenderingPreference, { signal });
+  desktopBackground.addEventListener('change', applyRenderingPreference, { signal });
 
   // A background tab keeps rendering unless someone stops it, and five
   // fbm-heavy samples per pixel is enough to be felt on a laptop battery.
@@ -316,7 +331,7 @@ function initVeil(): void {
     'visibilitychange',
     () => {
       if (document.hidden) stop();
-      else applyMotionPreference();
+      else applyRenderingPreference();
     },
     { signal },
   );
@@ -344,7 +359,9 @@ function initVeil(): void {
     { signal },
   );
 
-  applyMotionPreference();
+  applyRenderingPreference();
 }
 
 initVeil();
+
+export {};
