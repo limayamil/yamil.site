@@ -2220,6 +2220,14 @@ html[data-lang='es'] [data-i18n='en'] {
   max-height: 1.75rem;
 }
 
+.company-logo-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .track-note {
   margin-top: 0.25rem;
   color: var(--color-muted);

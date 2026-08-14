@@ -1,5 +1,5 @@
 ---
-import { companyLogos } from '../lib/company-logos';
+import { companyLogoId, companyLogos } from '../lib/company-logos';
 
 /**
  * One company wordmark, replacing the plain-text company name in a track
@@ -37,5 +37,6 @@ const [, , vbWidth, vbHeight] = logo.viewBox.split(' ').map(Number);
   fill="currentColor"
   role="img"
   aria-label={name}
-  set:html={logo.markup}
-/>
+>
+  <use href={`#${companyLogoId(name)}`} />
+</svg>

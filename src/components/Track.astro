@@ -23,6 +23,7 @@ import { profile } from '../data/profile';
 import { track } from '../data/track';
 import Bilingual from './Bilingual.astro';
 import CompanyLogo from './CompanyLogo.astro';
+import CompanyLogoSprite from './CompanyLogoSprite.astro';
 import ExternalArrow from './ExternalArrow.astro';
 import GitHubActivity from './GitHubActivity.astro';
 import Icon from './Icon.astro';
@@ -86,6 +87,7 @@ const stats = [
 ---
 
 <section class="track" data-track aria-labelledby="track-title">
+  <CompanyLogoSprite />
   <button type="button" class="case-back track-enter" style="--i:0" data-track-back>
     <svg width="14" height="14" viewBox="0 0 8 8" fill="none" aria-hidden="true">
       <path

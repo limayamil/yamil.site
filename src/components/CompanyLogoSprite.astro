@@ -1,0 +1,14 @@
+---
+import { companyLogoId, companyLogos } from '../lib/company-logos';
+---
+
+{/* One traced copy per employer. Instances keep their own accessible name. */}
+<svg class="company-logo-sprite" aria-hidden="true">
+  <defs>
+    {
+      Object.entries(companyLogos).map(([name, logo]) => (
+        <symbol id={companyLogoId(name)} viewBox={logo.viewBox} set:html={logo.markup} />
+      ))
+    }
+  </defs>
+</svg>

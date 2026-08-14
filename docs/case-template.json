@@ -7,8 +7,8 @@
     "'axis' es una de tres claves compartidas con profile.ts (capabilities) y track.ts (roles): 'engineering' | 'motion' | 'ops'. Un typo rompe el filtro del bento en silencio.",
     "'tier' decide el tamaño en el bento: 'primary' (fila completa, dos filas), 'secondary' (dos celdas), 'tertiary' (una celda). Es la única señal de importancia que tiene el diseño.",
     "'shape' solo se lee cuando tier === 'secondary': 'horizontal' (dos columnas) o 'vertical' (dos filas).",
-    "'order' es la posición en la grilla — los nueve proyectos actuales llenan exactamente 27 celdas / 9 filas a 3 columnas. Sumar o restar un caso rompe esa cuenta y hay que reacomodarla (ver CLAUDE.md).",
-    "'poster' es obligatorio siempre (también sirve de poster del video). 'video' es opcional — si está, el tile lo reproduce en hover/scroll.",
+    "'order' es la posición en la grilla. Los tres casos actuales son secundarios y cierran una fila de tres columnas en desktop; al sumar o restar, revisar el empaquetado documentado en CLAUDE.md.",
+    "'poster' es obligatorio siempre (también sirve de poster del video). Debe apuntar al WebP canónico de 1920×1080; sus variantes de tarjeta se llaman *-card-640.webp y *-card-960.webp. 'video' es opcional.",
     "detail.facts es la ficha técnica (Rol / Cliente / Año / Stack, etc.) — array abierto, tantas filas como haga falta.",
     "detail.sections es el cuerpo del caso: heading + uno o más párrafos (body es un array de localized, un elemento por párrafo).",
     "detail.heroNote, detail.sections[].note y detail.gallery[].note son llamadas manuscritas opcionales de 2–6 palabras. Usá como máximo una nota de sección y una de galería por caso.",
@@ -36,7 +36,7 @@
       "en": "Discipline in English"
     }
   ],
-  "poster": "/media/nombre-del-poster.svg",
+  "poster": "/media/nombre-del-poster.webp",
   "video": "/media/nombre-del-loop.mp4",
   "featured": true,
   "order": 10,
@@ -104,7 +104,7 @@
     ],
     "gallery": [
       {
-        "src": "/media/nombre-de-imagen.svg",
+        "src": "/media/nombre-de-imagen.webp",
         "alt": { "es": "Descripción de la imagen", "en": "Image description" },
         "caption": { "es": "Pie de foto opcional", "en": "Optional caption" },
         "note": { "es": "Detalle para señalar", "en": "Detail to point out" },

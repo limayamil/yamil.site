@@ -239,7 +239,8 @@ function initCaseMedia(): void {
   const minHold = 6_500;
   const maxHold = 9_500;
   const fadeDuration = 1_400;
-  const timers = new Map<HTMLElement, number>();
+  const prepareLead = 2_000;
+  const timers = new Map<HTMLElement, { prepare: number; advance: number }>();
   const visible = new Set<HTMLElement>();
   const revisions = new Map<HTMLElement, number>();
   const prepared = new WeakMap<HTMLImageElement, Promise<boolean>>();
@@ -262,9 +263,22 @@ function initCaseMedia(): void {
     const pending = prepared.get(image);
     if (pending) return pending;
 
-    // A lazy image can be inside a visible absolutely-positioned frame without
-    // being decoded yet. Promote the next frame early, then wait for a decoded
-    // bitmap before any opacity changes begin.
+    // Inactive slideshow frames intentionally ship without `src`/`srcset`, so
+    // the preload scanner cannot fetch a whole gallery on first paint. Promote
+    // the next frame near the end of the hold, then wait for a decoded bitmap
+    // before any opacity changes begin.
+    if (image.dataset.src) {
+      image.src = image.dataset.src;
+      delete image.dataset.src;
+    }
+    if (image.dataset.srcset) {
+      image.srcset = image.dataset.srcset;
+      delete image.dataset.srcset;
+    }
+    if (image.dataset.sizes) {
+      image.sizes = image.dataset.sizes;
+      delete image.dataset.sizes;
+    }
     image.loading = 'eager';
     const preparation = image
       .decode()
@@ -287,7 +301,10 @@ function initCaseMedia(): void {
 
   const stopRotation = (host: HTMLElement) => {
     const timer = timers.get(host);
-    if (timer !== undefined) window.clearTimeout(timer);
+    if (timer !== undefined) {
+      window.clearTimeout(timer.prepare);
+      window.clearTimeout(timer.advance);
+    }
     timers.delete(host);
     settleFade(host);
     revisions.set(host, (revisions.get(host) ?? 0) + 1);
@@ -349,16 +366,11 @@ function initCaseMedia(): void {
     const next = frames[(current + 1) % frames.length];
     const revision = revisions.get(host) ?? 0;
 
-    // Start fetching/decoding during the hold, not when it expires.
-    void prepareFrame(next);
-
-    timers.set(
-      host,
-      window.setTimeout(
-        () => void advance(host, revision),
-        minHold + Math.random() * (maxHold - minHold),
-      ),
-    );
+    const hold = minHold + Math.random() * (maxHold - minHold);
+    timers.set(host, {
+      prepare: window.setTimeout(() => void prepareFrame(next), Math.max(0, hold - prepareLead)),
+      advance: window.setTimeout(() => void advance(host, revision), hold),
+    });
   };
 
   const observer = new IntersectionObserver(

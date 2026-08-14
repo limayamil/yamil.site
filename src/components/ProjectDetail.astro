@@ -72,7 +72,7 @@ const outcomeSectionIndex = detail.sections.length - 1;
       detail.clientLogos.length > 0 && (
         <div class="case-head-logos case-enter" style="--i:1" aria-hidden="true">
           {detail.clientLogos.map((logo) => (
-            <img class="case-head-logo" src={logo.src} alt="" loading="eager" decoding="async" />
+            <img class="case-head-logo" src={logo.src} alt="" loading="lazy" decoding="async" />
           ))}
         </div>
       )
@@ -95,10 +95,10 @@ const outcomeSectionIndex = detail.sections.length - 1;
             aria-hidden="true"
           >
             <img
-              src={src}
+              {...slideIndex === 0 ? { src } : { 'data-src': src }}
               alt=""
-              width="1600"
-              height="1000"
+              width="1920"
+              height="1080"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
@@ -219,8 +219,8 @@ const outcomeSectionIndex = detail.sections.length - 1;
               alt={shot.alt.es}
               data-alt-es={shot.alt.es}
               data-alt-en={shot.alt.en}
-              width="1600"
-              height="1000"
+              width="1920"
+              height="1080"
               loading="lazy"
               decoding="async"
             />

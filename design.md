@@ -422,13 +422,14 @@ al próximo 0.5rem.
 | Qué | Cuánto |
 |---|---|
 | Markup de doodles en el HTML | 15.6KB, en 19 elementos (intro + tres casos renderizados — §4) |
-| `index.html` completo | 188.2KB → **40.7KB gzip** |
+| `index.html` completo | 167.9KB → **41.6KB gzip** |
 | Caveat (no preloadeado, `swap`) | 47.7KB |
-| `motion.ts` compilado | 9.3KB → **3.3KB gzip** |
-| `veil.ts` compilado | 5.3KB → **2.3KB gzip** |
+| `motion.ts` + `uisfx` compilado | 56.3KB → **16.9KB gzip** |
+| `veil.ts` compilado | 5.4KB → **2.4KB gzip** |
 
-Los dos JS son todo el runtime del sitio y no tienen una sola dependencia. El
-HTML es lo que creció, y creció a propósito: los casos y las catorce
+Los dos entry points son todo el runtime del sitio. `veil.ts` no tiene
+dependencias; `motion.ts` conserva `uisfx` deliberadamente para el feedback
+sonoro opcional. El HTML creció a propósito: los casos y las catorce
 entradas del recorrido viajan renderizados adentro (§8, §9).
 
 El `d` de cada path se redondea a dos decimales en `doodles.ts`; rough emite ~17,
@@ -646,8 +647,8 @@ L ≤ 0.042 para sostener 4.5:1, y bajar arte blanco hasta ahí pide α ≥ 0.82
 | `--color-primary-ink` (eje) | 6.8:1 | 4.5 ✓ |
 | `.tile-cue` sobre `rgb(18 9 6 / 0.55)` | 4.2:1 | 3.0 ✓ |
 
-El peor caso es un frame blanco puro; los placeholders actuales son mucho más
-oscuros, así que el presupuesto ya está pago para cuando llegue material real.
+El peor caso sigue siendo un frame blanco puro; el arte actual es más oscuro,
+así que ese presupuesto conserva margen sin depender de una captura concreta.
 
 **Cómo re-medirlo** si se toca el 0.93 o el sangrado de 3.5em: componer blanco
 contra el alfa efectivo de las dos capas, pasar a luminancia relativa y sacar la
@@ -685,7 +686,7 @@ prendido.
 
 ### Peso
 
-Los 9 casos se renderizan en build y viajan ocultos en el HTML: sin fetch, sin
+Los tres casos actuales se renderizan en build y viajan ocultos en el HTML: sin fetch, sin
 plantilla en cliente, y con JS apagado un `#caso/slug` no rompe nada. El costo es
 real y está acá para que se vea:
 
@@ -786,10 +787,15 @@ resaltar el recorrido, el dato ya está ahí.
 
 La empresa de cada entrada entra como logotipo, no como texto
 ([CompanyLogo.astro](src/components/CompanyLogo.astro) +
+[CompanyLogoSprite.astro](src/components/CompanyLogoSprite.astro) +
 [company-logos.ts](src/lib/company-logos.ts)) — la cuarta clase de marca de §5,
 y la única cuya forma es ajena. Van en `currentColor` sobre
 `--color-primary-ink`, que es lo que las devuelve a la paleta sin pedirle a nadie
 que altere su marca.
+
+Las ocho trazas se emiten una sola vez como `<symbol>` y las catorce entradas
+las reutilizan con `<use>`. Cada instancia conserva su propio `role="img"` y
+`aria-label`; sólo el sprite de definiciones está oculto para accesibilidad.
 
 **Encajarlas a una altura común fue el bug de la primera versión.** Los
 wordmarks reales no comparten proporción: ECONOMIX es ~8.9:1 y Comprando en

@@ -15,6 +15,7 @@
  */
 import type { CollectionEntry } from 'astro:content';
 import { profile } from '../data/profile';
+import { CARD_IMAGE_SIZES, cardImage } from '../lib/project-media';
 import Bilingual from './Bilingual.astro';
 
 interface Props {
@@ -36,8 +37,10 @@ const slides = [poster, ...detail.gallery.map((shot) => shot.src)].filter(
 // The discipline goes by its English name in both languages, same as the axis
 // rows in the left column.
 const axisTitle = profile.capabilities.find((c) => c.icon === axis)?.title ?? axis;
-// The first row of the grid is above the fold on most viewports.
-const eager = index < 3;
+// Only the first tile competes for initial bandwidth. The remaining posters
+// are responsive but lazy, and future slideshow frames do not get a `src`
+// until `motion.ts` promotes them shortly before their dissolve.
+const eager = index === 0;
 ---
 
 <article
@@ -56,24 +59,35 @@ const eager = index < 3;
       {...video ? {} : { 'data-placeholder': '' }}
     >
       {
-        slides.map((src, slideIndex) => (
-          <div
-            class="case-media-frame"
-            data-media-slide
-            data-active={slideIndex === 0 ? 'true' : 'false'}
-            aria-hidden="true"
-          >
-            <img
-              src={src}
-              alt=""
-              width="1600"
-              height="1000"
-              loading={slideIndex === 0 && eager ? 'eager' : 'lazy'}
-              decoding={slideIndex === 0 && eager ? 'sync' : 'async'}
-              fetchpriority={slideIndex === 0 && eager ? 'high' : 'low'}
-            />
-          </div>
-        ))
+        slides.map((src, slideIndex) => {
+          const image = cardImage(src);
+          const active = slideIndex === 0;
+
+          return (
+            <div
+              class="case-media-frame"
+              data-media-slide
+              data-active={active ? 'true' : 'false'}
+              aria-hidden="true"
+            >
+              <img
+                {...active
+                  ? { src: image.src, srcset: image.srcset, sizes: CARD_IMAGE_SIZES }
+                  : {
+                      'data-src': image.src,
+                      'data-srcset': image.srcset,
+                      'data-sizes': CARD_IMAGE_SIZES,
+                    }}
+                alt=""
+                width="1920"
+                height="1080"
+                loading={active && eager ? 'eager' : 'lazy'}
+                decoding={active && eager ? 'sync' : 'async'}
+                fetchpriority={active && eager ? 'high' : 'auto'}
+              />
+            </div>
+          );
+        })
       }
       {
         video && (

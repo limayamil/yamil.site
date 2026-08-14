@@ -54,3 +54,12 @@ export const companyLogos: Record<string, CompanyLogo> = {
 };
 
 export type CompanyName = keyof typeof companyLogos;
+
+export function companyLogoId(name: string): string {
+  return `company-logo-${name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')}`;
+}

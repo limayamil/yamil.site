@@ -23,9 +23,8 @@ No modificar la plantilla. Usarla para construir la entrada real, pero tomar `sr
 ## 2. Elegir el espacio del caso
 
 - Contar los casos destacados y respetar el presupuesto de la grilla documentado por el proyecto.
-- Si existen placeholders y la grilla tiene nueve posiciones cerradas, reemplazar el placeholder temáticamente más cercano. Conservar su `tier`, `shape` y `order` para no alterar el empaquetado.
 - No borrar un caso real para abrir espacio.
-- Si no quedan placeholders y sumar otro caso rompe la grilla, pedir una decisión antes de cambiar la composición.
+- Los tres casos actuales son `secondary` y cierran una fila de tres columnas en desktop. Si sumar otro caso rompe la composición solicitada, pedir una decisión antes de cambiar tiers u orden.
 - Crear un `id` único, descriptivo y en kebab-case.
 
 ## 3. Redactar el contenido
@@ -51,13 +50,20 @@ No modificar la plantilla. Usarla para construir la entrada real, pero tomar `sr
 - Escribir `alt` descriptivo en español e inglés. Añadir `caption` solo cuando aporte contexto; no repetir el título.
 - Usar `wide: true` para capturas panorámicas o piezas que necesiten legibilidad a ancho completo.
 - Generar nombres en kebab-case dentro de `public/media/`, con el cliente y la función de la imagen.
-- Convertir imágenes raster a WebP con `scripts/optimize-image.mjs`:
+- Normalizar cada poster y captura raster a un WebP canónico de 1920×1080 con `scripts/optimize-image.mjs`:
 
 ```powershell
 node .agents/skills/create-portfolio-case/scripts/optimize-image.mjs <entrada> <salida.webp>
 ```
 
-El script limita el ancho a 1920 px y usa calidad 82 de forma predeterminada. Conservar los originales en `procesar/`; no reemplazarlos ni borrarlos.
+El script limita el ancho a 1920 px y usa calidad 82 de forma predeterminada. Si la fuente no está en 16:9, resolver el encuadre antes: las dimensiones intrínsecas del sitio asumen 1920×1080. Conservar los originales en `procesar/`; no reemplazarlos ni borrarlos.
+
+- Para cada WebP canónico publicado, generar también las dos variantes que consume la grilla. No agregar estos campos al schema: `ProjectCard.astro` deriva sus URLs automáticamente.
+
+```powershell
+node .agents/skills/create-portfolio-case/scripts/optimize-image.mjs public/media/nombre.webp public/media/nombre-card-640.webp --width 640
+node .agents/skills/create-portfolio-case/scripts/optimize-image.mjs public/media/nombre.webp public/media/nombre-card-960.webp --width 960
+```
 
 ### Logos de cliente
 
@@ -79,10 +85,11 @@ El script limita el ancho a 1920 px y usa calidad 82 de forma predeterminada. Co
 
 ## 6. Validar
 
-1. Parsear `src/data/projects.json` y confirmar que el nuevo `id`, el poster, la galería y cada `clientLogos[].src` existen.
-2. Ejecutar `npm run check`.
-3. Ejecutar `npm run build`.
-4. Confirmar en `dist/index.html` que aparecen el `data-case`, las rutas WebP y los textos con Unicode correcto.
-5. Revisar `git diff --check` y el diff del caso; no mezclar cambios ajenos.
+1. Parsear `src/data/projects.json` y confirmar que el nuevo `id`, el poster, la galería, cada par `*-card-640.webp` / `*-card-960.webp` y cada `clientLogos[].src` existen.
+2. Ejecutar `npm run test`.
+3. Ejecutar `npm run check`.
+4. Ejecutar `npm run build`.
+5. Confirmar en `dist/index.html` que aparecen el `data-case`, las rutas WebP y los textos con Unicode correcto.
+6. Revisar `git diff --check` y el diff del caso; no mezclar cambios ajenos.
 
 Entregar un resumen breve con el slug creado o reemplazado, las imágenes y logos publicados, la reducción de peso y el estado de las validaciones.
